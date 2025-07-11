@@ -1,2 +1,0 @@
-# This file ensures the /apk directory is tracked in git
-# APK files will be generated here during build
