@@ -27,6 +27,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+    
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -45,6 +46,31 @@ android {
         resources {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
         }
+    }
+}
+
+// Task to copy APK files to /apk directory
+task copyApkToRoot(type: Copy) {
+    from 'build/outputs/apk'
+    into project.rootDir.path + '/apk'
+    include '**/*.apk'
+    
+    // Flatten the directory structure
+    eachFile { file ->
+        file.path = file.name
+    }
+    includeEmptyDirs = false
+    
+    doFirst {
+        // Create apk directory if it doesn't exist
+        file(project.rootDir.path + '/apk').mkdirs()
+    }
+}
+
+// Make the copy task run after assembling
+tasks.whenTaskAdded { task ->
+    if (task.name.startsWith('assemble')) {
+        task.finalizedBy copyApkToRoot
     }
 }
 

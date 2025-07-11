@@ -38,11 +38,13 @@ An Android application with Firebase authentication featuring Google-inspired lo
 ### Alternative: Command Line Build
 
 ```bash
-# Build debug APK
+# Build debug APK (automatically copied to /apk directory)
 ./gradlew assembleDebug
 
 # Install on connected device
 ./gradlew installDebug
+
+# APK location: /apk/app-debug.apk
 ```
 
 ## Project Structure

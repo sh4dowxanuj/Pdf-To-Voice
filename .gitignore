@@ -25,4 +25,8 @@ app/build/
 !app/build/outputs/apk/**/*.apk
 !app/build/outputs/apk/**/output-metadata.json
 
+# Include custom APK directory
+!apk/
+!apk/*.apk
+
 # Firebase config included (private repo)
