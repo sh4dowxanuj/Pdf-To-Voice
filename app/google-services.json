@@ -12,7 +12,12 @@
           "package_name": "com.example.pdftovoice"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "873295341604-g1jqv8briuoavqf2ae8hc2gk9ilvp174.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAxu1QsBAcmUYJeBmSpyTZftPW4aYV4A2U"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "873295341604-g1jqv8briuoavqf2ae8hc2gk9ilvp174.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
