@@ -2,7 +2,7 @@
 .gradle/
 build/
 gradle.properties
-
+.vscode/
 # Local configuration file (sdk path, etc)
 local.properties
 
@@ -12,9 +12,12 @@ local.properties
 *.hprof
 
 # Built application files
-*.apk
 *.ap_
 *.aab
+
+# APK output directory (track folder, ignore APK files)
+apk/*.apk
+!apk/.gitkeep
 
 # Files for the ART/Dalvik VM
 *.dex

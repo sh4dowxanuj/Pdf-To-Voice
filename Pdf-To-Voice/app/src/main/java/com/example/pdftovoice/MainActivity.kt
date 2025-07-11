@@ -2,6 +2,9 @@ package com.example.pdftovoice
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
 import androidx.navigation.findNavController
 import androidx.navigation.ui.setupActionBarWithNavController
 import com.example.pdftovoice.databinding.ActivityMainBinding
@@ -17,6 +20,15 @@ class MainActivity : AppCompatActivity() {
         
         val navController = findNavController(R.id.nav_host_fragment)
         setupActionBarWithNavController(navController)
+    }
+    
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.main_menu, menu)
+        return true
+    }
+    
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return super.onOptionsItemSelected(item)
     }
     
     override fun onSupportNavigateUp(): Boolean {

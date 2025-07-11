@@ -35,6 +35,25 @@ android {
     buildFeatures {
         viewBinding true
     }
+    
+    // Configure APK output directory
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            def apkName = "pdf-to-voice-${variant.name}-v${variant.versionName}.apk"
+            outputFileName = apkName
+            
+            // Copy APK to /apk folder within the project root
+            variant.assembleProvider.get().doLast {
+                copy {
+                    from output.outputFile
+                    into "${rootProject.projectDir}/apk"
+                    rename { String fileName ->
+                        apkName
+                    }
+                }
+            }
+        }
+    }
 }
 
 dependencies {
