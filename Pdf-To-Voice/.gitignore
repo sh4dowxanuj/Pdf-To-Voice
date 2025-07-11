@@ -15,8 +15,7 @@ local.properties
 *.ap_
 *.aab
 
-# APK output directory (track folder, ignore APK files)
-apk/*.apk
+# APK output directory (track folder and APK files)
 !apk/.gitkeep
 
 # Files for the ART/Dalvik VM
