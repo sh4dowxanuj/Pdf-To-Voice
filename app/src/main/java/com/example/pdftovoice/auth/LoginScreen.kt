@@ -1,5 +1,8 @@
 package com.example.pdftovoice.auth
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -16,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -26,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.pdftovoice.ui.theme.GoogleBlue
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.common.api.ApiException
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,6 +45,34 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+    
+    val context = LocalContext.current
+
+    // Google Sign-In launcher
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(ApiException::class.java)
+                viewModel.handleGoogleSignInResult(account?.idToken) { success, error ->
+                    isLoading = false
+                    if (success) {
+                        onLoginSuccess()
+                    } else {
+                        errorMessage = error ?: "Google sign in failed"
+                    }
+                }
+            } catch (e: ApiException) {
+                isLoading = false
+                errorMessage = "Google sign in failed: ${e.message}"
+            }
+        } else {
+            isLoading = false
+            errorMessage = "Google sign in was cancelled"
+        }
+    }
 
     LaunchedEffect(viewModel.authState.value) {
         if (viewModel.authState.value is AuthState.Success) {
@@ -195,13 +229,28 @@ fun LoginScreen(
         
         Spacer(modifier = Modifier.height(24.dp))
         
-        // Google Sign In Button (placeholder for now)
+        // Google Sign In Button
         OutlinedButton(
-            onClick = { /* TODO: Implement Google Sign In */ },
+            onClick = { 
+                isLoading = true
+                errorMessage = ""
+                try {
+                    val googleSignInClient = viewModel.authService.getGoogleSignInClient(context)
+                    val signInIntent = googleSignInClient.signInIntent
+                    googleSignInLauncher.launch(signInIntent)
+                } catch (e: IllegalStateException) {
+                    isLoading = false
+                    errorMessage = "Google Sign-In not configured. Check setup instructions."
+                } catch (e: Exception) {
+                    isLoading = false
+                    errorMessage = "Google Sign-In error: ${e.message}"
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
-            shape = RoundedCornerShape(8.dp)
+            shape = RoundedCornerShape(8.dp),
+            enabled = !isLoading
         ) {
             Row(
                 horizontalArrangement = Arrangement.Center,
