@@ -56,6 +56,10 @@ class FirebaseUserRepository {
     
     suspend fun loginUser(emailOrUsername: String, password: String): Result<User> {
         return try {
+            if (emailOrUsername.isBlank() || password.isBlank()) {
+                return Result.failure(Exception("Email/username and password cannot be empty"))
+            }
+            
             val hashedPassword = hashPassword(password)
             
             // Try to find user by email first

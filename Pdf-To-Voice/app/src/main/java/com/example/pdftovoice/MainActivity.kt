@@ -15,11 +15,19 @@ class MainActivity : AppCompatActivity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
         
-        val navController = findNavController(R.id.nav_host_fragment)
-        setupActionBarWithNavController(navController)
+        try {
+            binding = ActivityMainBinding.inflate(layoutInflater)
+            setContentView(binding.root)
+            
+            val navController = findNavController(R.id.nav_host_fragment)
+            setupActionBarWithNavController(navController)
+            
+            Log.d("MainActivity", "Activity created successfully")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error in onCreate: ${e.message}", e)
+            throw e
+        }
     }
     
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {

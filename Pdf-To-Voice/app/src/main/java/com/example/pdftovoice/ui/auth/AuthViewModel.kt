@@ -33,7 +33,7 @@ class AuthViewModel : ViewModel() {
                 val result = userRepository.loginUser(emailOrUsername, password)
                 _loginResult.value = result
             } catch (e: Exception) {
-                _loginResult.value = Result.failure(e)
+                _loginResult.value = Result.failure(Exception("Login failed: ${e.message ?: "Unknown error"}"))
             } finally {
                 _isLoading.value = false
             }
