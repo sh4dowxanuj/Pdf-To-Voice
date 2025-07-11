@@ -1,2 +1,28 @@
 .vscode/tasks.json
 gradle/wrapper/gradle-wrapper.jar
+
+# Android specific
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Keep APK files - exclude build but include APK outputs
+app/build/
+!app/build/outputs/
+!app/build/outputs/apk/
+!app/build/outputs/apk/**/*.apk
+!app/build/outputs/apk/**/output-metadata.json
+
+# Firebase config included (private repo)
