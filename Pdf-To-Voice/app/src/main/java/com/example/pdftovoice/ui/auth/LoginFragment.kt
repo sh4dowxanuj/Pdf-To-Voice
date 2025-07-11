@@ -23,8 +23,13 @@ class LoginFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentLoginBinding.inflate(inflater, container, false)
-        return binding.root
+        try {
+            _binding = FragmentLoginBinding.inflate(inflater, container, false)
+            return binding.root
+        } catch (e: Exception) {
+            android.util.Log.e("LoginFragment", "Error inflating layout", e)
+            throw e
+        }
     }
     
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {

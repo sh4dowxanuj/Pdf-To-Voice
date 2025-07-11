@@ -20,13 +20,23 @@ class MainActivity : AppCompatActivity() {
             binding = ActivityMainBinding.inflate(layoutInflater)
             setContentView(binding.root)
             
+            // Set up the toolbar as action bar
+            setSupportActionBar(findViewById(androidx.appcompat.R.id.action_bar))
+            
             val navController = findNavController(R.id.nav_host_fragment)
             setupActionBarWithNavController(navController)
             
             Log.d("MainActivity", "Activity created successfully")
         } catch (e: Exception) {
             Log.e("MainActivity", "Error in onCreate: ${e.message}", e)
-            throw e
+            // Don't rethrow, just log and continue with basic setup
+            try {
+                binding = ActivityMainBinding.inflate(layoutInflater)
+                setContentView(binding.root)
+            } catch (fallbackException: Exception) {
+                Log.e("MainActivity", "Fallback setup also failed", fallbackException)
+                throw fallbackException
+            }
         }
     }
     
