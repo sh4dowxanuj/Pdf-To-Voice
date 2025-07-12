@@ -12,6 +12,7 @@ import com.example.pdftovoice.auth.AuthState
 import com.example.pdftovoice.auth.AuthViewModel
 import com.example.pdftovoice.auth.LoginScreen
 import com.example.pdftovoice.auth.SignUpScreen
+import com.example.pdftovoice.home.HomeScreen
 import com.example.pdftovoice.ui.screens.PdfToVoiceScreen
 
 @Composable
@@ -69,6 +70,15 @@ fun AuthNavGraph(windowSizeClass: WindowSizeClass) {
         }
         
         composable("home") {
+            HomeScreen(
+                windowSizeClass = windowSizeClass,
+                onNavigateToPdfReader = {
+                    navController.navigate("pdf_reader")
+                }
+            )
+        }
+        
+        composable("pdf_reader") {
             PdfToVoiceScreen(
                 windowSizeClass = windowSizeClass,
                 onLogout = {
