@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background_dark">
+
+    <!-- Top Bar with PDF Selection -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:background="@color/surface_dark"
+        android:elevation="4dp">
+
+        <Button
+            android:id="@+id/selectPdfButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/select_pdf"
+            android:textColor="@color/text_primary"
+            android:background="@drawable/button_rounded"
+            android:layout_margin="8dp" />
+
+    </LinearLayout>
+
+    <!-- Main Text Display Area -->
+    <ScrollView
+        android:id="@+id/scrollView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="16dp"
+        android:background="@color/background_dark">
+
+        <TextView
+            android:id="@+id/textDisplay"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="18sp"
+            android:lineSpacingExtra="8dp"
+            android:textColor="@color/text_primary"
+            android:fontFamily="serif"
+            android:text="@string/default_text"
+            android:gravity="start"
+            android:padding="16dp" />
+
+    </ScrollView>
+
+    <!-- Bottom Control Panel (Spotify-like) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@color/surface_dark"
+        android:elevation="8dp"
+        android:padding="16dp">
+
+        <!-- Speed Control -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/speed"
+                android:textColor="@color/text_secondary"
+                android:layout_marginEnd="8dp" />
+
+            <SeekBar
+                android:id="@+id/speedSlider"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="100"
+                android:progress="50"
+                android:progressTint="@color/accent_primary"
+                android:thumbTint="@color/accent_primary" />
+
+            <TextView
+                android:id="@+id/speedText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1.0x"
+                android:textColor="@color/text_secondary"
+                android:layout_marginStart="8dp"
+                android:minWidth="40dp"
+                android:gravity="center" />
+
+        </LinearLayout>
+
+        <!-- Media Controls -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:background="@drawable/controls_background">
+
+            <!-- Previous Button -->
+            <ImageButton
+                android:id="@+id/previousButton"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:src="@drawable/ic_skip_previous"
+                android:background="@drawable/button_circle"
+                android:layout_margin="8dp"
+                android:contentDescription="@string/previous"
+                app:tint="@color/text_primary" />
+
+            <!-- Play/Pause Button -->
+            <ImageButton
+                android:id="@+id/playPauseButton"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:src="@android:drawable/ic_media_play"
+                android:background="@drawable/button_circle_primary"
+                android:layout_margin="8dp"
+                android:contentDescription="@string/play"
+                app:tint="@color/text_on_primary" />
+
+            <!-- Next Button -->
+            <ImageButton
+                android:id="@+id/nextButton"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:src="@drawable/ic_skip_next"
+                android:background="@drawable/button_circle"
+                android:layout_margin="8dp"
+                android:contentDescription="@string/next"
+                app:tint="@color/text_primary" />
+
+            <!-- Stop Button -->
+            <ImageButton
+                android:id="@+id/stopButton"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:src="@android:drawable/ic_media_pause"
+                android:background="@drawable/button_circle"
+                android:layout_margin="8dp"
+                android:contentDescription="@string/stop"
+                app:tint="@color/text_primary" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

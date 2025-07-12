@@ -62,4 +62,17 @@
     <string name="advanced_controls">Advanced Controls</string>
     <string name="show_controls">Show Controls</string>
     <string name="hide_controls">Hide Controls</string>
+    
+    <!-- Additional Strings -->
+    <string name="select_pdf">Select PDF</string>
+    <string name="previous">Previous</string>
+    <string name="next">Next</string>
+    <string name="no_pdf_selected">Please select a PDF file first</string>
+    <string name="pdf_loaded">PDF loaded successfully</string>
+    <string name="no_text_found">No text found in PDF</string>
+    <string name="error_reading_pdf">Error reading PDF</string>
+    <string name="permission_required">Storage permission required to read PDF files</string>
+    <string name="tts_init_failed">Text-to-Speech initialization failed</string>
+    <string name="speech_error">Speech error occurred</string>
+    <string name="default_text">Select a PDF file to start reading...</string>
 </resources>

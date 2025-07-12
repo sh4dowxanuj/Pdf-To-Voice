@@ -10,37 +10,18 @@ android {
 
     defaultConfig {
         applicationId "com.example.pdftovoice"
-        minSdk 24
+        minSdk 21
         targetSdk 34
         versionCode 1
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables {
-            useSupportLibrary true
-        }
-        
-        // Optimize for better performance
-        ndk {
-            abiFilters 'arm64-v8a', 'armeabi-v7a'
-        }
     }
 
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            
-            // Optimize for release builds
-            debuggable false
-            jniDebuggable false
-            renderscriptDebuggable false
-        }
-        debug {
             minifyEnabled false
-            shrinkResources false
-            debuggable true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
     
@@ -48,101 +29,32 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+    
     kotlinOptions {
         jvmTarget = '1.8'
-        freeCompilerArgs += [
-            "-opt-in=kotlin.RequiresOptIn",
-            "-Xjvm-default=all"
-        ]
     }
+    
     buildFeatures {
-        compose true
         viewBinding true
-        buildConfig true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion '1.5.4'
-    }
-    packagingOptions {
-        resources {
-            excludes += [
-                '/META-INF/{AL2.0,LGPL2.1}',
-                '/META-INF/INDEX.LIST',
-                '/META-INF/DEPENDENCIES'
-            ]
-        }
-    }
-}
-
-// Task to copy APK files to /apk directory
-task copyApkToRoot(type: Copy) {
-    from 'build/outputs/apk'
-    into project.rootDir.path + '/apk'
-    include '**/*.apk'
-    
-    // Flatten the directory structure
-    eachFile { file ->
-        file.path = file.name
-    }
-    includeEmptyDirs = false
-    
-    doFirst {
-        // Create apk directory if it doesn't exist
-        file(project.rootDir.path + '/apk').mkdirs()
-    }
-}
-
-// Make the copy task run after assembling
-tasks.whenTaskAdded { task ->
-    if (task.name.startsWith('assemble')) {
-        task.finalizedBy copyApkToRoot
     }
 }
 
 dependencies {
     implementation 'androidx.core:core-ktx:1.12.0'
-    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
-    implementation 'androidx.activity:activity-compose:1.8.2'
     implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation platform('androidx.compose:compose-bom:2023.10.01')
-    implementation 'androidx.compose.ui:ui'
-    implementation 'androidx.compose.ui:ui-graphics'
-    implementation 'androidx.compose.ui:ui-tooling-preview'
-    implementation 'androidx.compose.material3:material3'
-    implementation 'androidx.navigation:navigation-compose:2.7.5'
-    
-    // Firebase
-    implementation platform('com.google.firebase:firebase-bom:32.7.0')
-    implementation 'com.google.firebase:firebase-auth'
-    implementation 'com.google.firebase:firebase-firestore'
-    implementation 'com.google.android.gms:play-services-auth:20.7.0'
-    
-    // Additional UI
-    implementation 'androidx.compose.material:material-icons-extended'
-    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0'
-    implementation 'androidx.lifecycle:lifecycle-runtime-compose:2.7.0'
-    
-    // PDF Processing - Optimized dependencies to avoid conflicts
-    implementation 'androidx.documentfile:documentfile:1.0.1'
-    implementation('com.tom-roush:pdfbox-android:2.0.27.0') {
-        exclude group: 'org.bouncycastle'
-    }
-    
-    // OCR for scanned PDFs
-    implementation 'com.google.android.gms:play-services-mlkit-text-recognition:19.0.0'
-    implementation 'com.google.mlkit:text-recognition:16.0.0'
-    
-    // Permission handling
-    implementation 'com.google.accompanist:accompanist-permissions:0.30.1'
-    
-    // File picker
+    implementation 'com.google.android.material:material:1.11.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'androidx.activity:activity-ktx:1.8.2'
     
+    // PDF processing
+    implementation 'com.itextpdf:itextg:5.5.10'
+    
+    // Google Services
+    implementation platform('com.google.firebase:firebase-bom:32.7.0')
+    implementation 'com.google.firebase:firebase-analytics-ktx'
+    
+    // Testing
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
-    androidTestImplementation platform('androidx.compose:compose-bom:2023.10.01')
-    androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
-    debugImplementation 'androidx.compose.ui:ui-tooling'
-    debugImplementation 'androidx.compose.ui:ui-test-manifest'
 }
