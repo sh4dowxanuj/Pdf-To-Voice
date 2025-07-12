@@ -22,6 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.launch
 
 @Composable
@@ -31,22 +33,62 @@ fun SynchronizedLyricsDisplay(
     isPlaying: Boolean,
     modifier: Modifier = Modifier
 ) {
-    // Split text into lines/sentences for synchronized display
+    // Split text into lines/sentences for synchronized display - matching TTS segmentation
     val textLines = remember(text) {
         if (text.isBlank()) emptyList()
-        else text.split(Regex("(?<=[.!?])\\s+|\\n"))
-            .filter { it.isNotBlank() }
-            .map { it.trim() }
+        else {
+            // Match the same segmentation logic as TTS Manager
+            val segments = text
+                .split(Regex("(?<=[.!?])\\s+"))
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+                .flatMap { segment ->
+                    // Break down very long segments (matching TTS MAX_SEGMENT_LENGTH of 200)
+                    if (segment.length > 200) {
+                        segment.chunked(200) { chunk ->
+                            val chunkStr = chunk.toString().trim()
+                            if (!chunkStr.matches(Regex(".*[.!?]$"))) "$chunkStr." else chunkStr
+                        }
+                    } else {
+                        listOf(if (!segment.matches(Regex(".*[.!?]$"))) "$segment." else segment)
+                    }
+                }
+            segments
+        }
     }
     
-    // Find current line index
+    // Find current line index with improved matching logic
     val currentLineIndex = remember(currentlyReadingSegment, textLines) {
-        if (currentlyReadingSegment.isBlank()) -1
+        if (currentlyReadingSegment.isBlank() || textLines.isEmpty()) -1
         else {
-            textLines.indexOfFirst { line ->
-                line.contains(currentlyReadingSegment, ignoreCase = true) ||
-                currentlyReadingSegment.contains(line, ignoreCase = true)
+            // First try exact contains match
+            var foundIndex = textLines.indexOfFirst { line ->
+                line.contains(currentlyReadingSegment, ignoreCase = true)
             }
+            
+            // If not found, try reverse match (segment contains line)
+            if (foundIndex == -1) {
+                foundIndex = textLines.indexOfFirst { line ->
+                    currentlyReadingSegment.contains(line, ignoreCase = true)
+                }
+            }
+            
+            // If still not found, try partial word matching
+            if (foundIndex == -1) {
+                val segmentWords = currentlyReadingSegment.lowercase().split(Regex("\\s+"))
+                foundIndex = textLines.indexOfFirst { line ->
+                    val lineWords = line.lowercase().split(Regex("\\s+"))
+                    // Check if at least 50% of words match
+                    val matchCount = segmentWords.count { segmentWord ->
+                        lineWords.any { lineWord ->
+                            segmentWord.contains(lineWord) || lineWord.contains(segmentWord)
+                        }
+                    }
+                    matchCount >= maxOf(1, segmentWords.size / 2)
+                }
+            }
+            
+            foundIndex
         }
     }
     
@@ -101,19 +143,25 @@ fun SynchronizedLyricsDisplay(
                 
                 Spacer(modifier = Modifier.weight(1f))
                 
-                // Progress indicator
-                if (textLines.isNotEmpty() && currentLineIndex >= 0) {
+                // Enhanced Progress indicator - Larger and more prominent
+                if (textLines.isNotEmpty()) {
                     Card(
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                            containerColor = MaterialTheme.colorScheme.primary
                         ),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                     ) {
                         Text(
-                            text = "${currentLineIndex + 1}/${textLines.size}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            text = if (currentLineIndex >= 0) {
+                                "${currentLineIndex + 1}/${textLines.size}"
+                            } else {
+                                "0/${textLines.size}"
+                            },
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                         )
                     }
                 }
@@ -188,42 +236,44 @@ private fun SynchronizedTextLine(
     isFutureLine: Boolean,
     modifier: Modifier = Modifier
 ) {
-    // Animated background for current line
+    // Enhanced animated background for current line - more prominent
     val animatedBackgroundColor by animateColorAsState(
         targetValue = when {
-            isCurrentLine && isPlaying -> MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-            isCurrentLine && !isPlaying -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
+            isCurrentLine && isPlaying -> MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+            isCurrentLine && !isPlaying -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
+            isPastLine -> MaterialTheme.colorScheme.outline.copy(alpha = 0.05f)
             else -> Color.Transparent
         },
         animationSpec = tween(durationMillis = 300, easing = EaseInOutCubic),
         label = "background_color"
     )
     
-    // Animated text color and size with future line consideration
+    // Enhanced text color with better contrast
     val animatedTextColor by animateColorAsState(
         targetValue = when {
-            isCurrentLine -> MaterialTheme.colorScheme.primary
-            isPastLine -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            isFutureLine -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-            else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+            isCurrentLine && isPlaying -> MaterialTheme.colorScheme.primary
+            isCurrentLine -> MaterialTheme.colorScheme.secondary
+            isPastLine -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            isFutureLine -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
         },
         animationSpec = tween(durationMillis = 300, easing = EaseInOutCubic),
         label = "text_color"
     )
     
     val animatedTextSize by animateFloatAsState(
-        targetValue = if (isCurrentLine) 18f else 16f,
+        targetValue = if (isCurrentLine) 20f else 16f, // Larger current text
         animationSpec = tween(durationMillis = 300, easing = EaseInOutCubic),
         label = "text_size"
     )
     
-    // Pulsing effect for current line when playing
+    // Enhanced pulsing effect for current line when playing
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.8f,
+        initialValue = 0.7f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = EaseInOutSine),
+            animation = tween(1000, easing = EaseInOutSine),
             repeatMode = RepeatMode.Reverse
         ),
         label = "pulse_alpha"
@@ -240,7 +290,7 @@ private fun SynchronizedTextLine(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Highlight bar (like Spotify's current line indicator)
+        // Enhanced highlight bar (like Spotify's current line indicator)
         AnimatedVisibility(
             visible = isCurrentLine,
             enter = slideInHorizontally(
@@ -254,36 +304,44 @@ private fun SynchronizedTextLine(
         ) {
             Box(
                 modifier = Modifier
-                    .width(4.dp)
-                    .height(if (isCurrentLine) 24.dp else 16.dp)
-                    .clip(RoundedCornerShape(2.dp))
+                    .width(6.dp) // Wider highlight bar
+                    .height(if (isCurrentLine) 32.dp else 20.dp) // Taller highlight bar
+                    .clip(RoundedCornerShape(3.dp))
                     .background(
                         brush = Brush.verticalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
-                            )
+                            colors = if (isPlaying) {
+                                listOf(
+                                    MaterialTheme.colorScheme.primary,
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                    MaterialTheme.colorScheme.secondary
+                                )
+                            } else {
+                                listOf(
+                                    MaterialTheme.colorScheme.secondary,
+                                    MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f)
+                                )
+                            }
                         )
                     )
             )
         }
         
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(16.dp)) // More spacing
         
-        // Text content with background
+        // Enhanced text content with better background and padding
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(12.dp))
                 .background(animatedBackgroundColor)
-                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             Text(
                 text = text,
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = animatedTextSize.sp,
-                    fontWeight = if (isCurrentLine) FontWeight.SemiBold else FontWeight.Normal,
-                    lineHeight = (animatedTextSize * 1.4f).sp
+                    fontWeight = if (isCurrentLine) FontWeight.Bold else FontWeight.Normal,
+                    lineHeight = (animatedTextSize * 1.5f).sp
                 ),
                 color = finalTextColor,
                 textAlign = TextAlign.Start

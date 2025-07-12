@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -367,6 +368,160 @@ fun PdfToVoiceScreen(
                     isPlaying = isPlaying,
                     modifier = Modifier.weight(1f)
                 )
+            }
+        }
+        
+        // Enhanced Reading Progress Bar above Music Player Controls
+        if (state.extractedText.isNotBlank()) {
+            // Calculate progress
+            val textLines = remember(state.extractedText) {
+                if (state.extractedText.isBlank()) emptyList()
+                else state.extractedText.split(Regex("(?<=[.!?])\\s+|\\n"))
+                    .filter { it.isNotBlank() }
+                    .map { it.trim() }
+            }
+            
+            val currentLineIndex = remember(state.currentlyReadingSegment, textLines) {
+                if (state.currentlyReadingSegment.isBlank() || textLines.isEmpty()) -1
+                else {
+                    // Improved matching logic
+                    var foundIndex = textLines.indexOfFirst { line ->
+                        line.contains(state.currentlyReadingSegment, ignoreCase = true)
+                    }
+                    
+                    if (foundIndex == -1) {
+                        foundIndex = textLines.indexOfFirst { line ->
+                            state.currentlyReadingSegment.contains(line, ignoreCase = true)
+                        }
+                    }
+                    
+                    if (foundIndex == -1 && state.currentlyReadingSegment.isNotBlank()) {
+                        val segmentWords = state.currentlyReadingSegment.lowercase().split(Regex("\\s+"))
+                        foundIndex = textLines.indexOfFirst { line ->
+                            val lineWords = line.lowercase().split(Regex("\\s+"))
+                            val matchCount = segmentWords.count { segmentWord ->
+                                lineWords.any { lineWord ->
+                                    segmentWord.contains(lineWord) || lineWord.contains(segmentWord)
+                                }
+                            }
+                            matchCount >= maxOf(1, segmentWords.size / 2)
+                        }
+                    }
+                    
+                    foundIndex
+                }
+            }
+            
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 200.dp) // Above music controls
+            ) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Reading progress header
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.MenuBook,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Text(
+                                    text = "Reading Progress",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                            
+                            // Large, prominent progress indicator
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primary
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text(
+                                    text = if (currentLineIndex >= 0) {
+                                        "${currentLineIndex + 1}/${textLines.size}"
+                                    } else {
+                                        "0/${textLines.size}"
+                                    },
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                                )
+                            }
+                        }
+                        
+                        // Progress bar
+                        if (textLines.isNotEmpty()) {
+                            val progress = if (currentLineIndex >= 0) {
+                                (currentLineIndex + 1).toFloat() / textLines.size.toFloat()
+                            } else {
+                                0f
+                            }
+                            
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                LinearProgressIndicator(
+                                    progress = progress,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(12.dp)
+                                        .clip(RoundedCornerShape(6.dp)),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                                )
+                                
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "Start",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                    )
+                                    Text(
+                                        text = "${(progress * 100).toInt()}% Complete",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                    Text(
+                                        text = "End",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
         
