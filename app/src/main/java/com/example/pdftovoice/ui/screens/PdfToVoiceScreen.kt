@@ -30,8 +30,7 @@ import com.example.pdftovoice.R
 import com.example.pdftovoice.tts.Language
 import com.example.pdftovoice.viewmodel.PdfToVoiceViewModel
 import com.example.pdftovoice.ui.components.MusicPlayerControls
-import com.example.pdftovoice.ui.components.TextHighlightingPanel
-import com.example.pdftovoice.ui.components.EnhancedTextDisplay
+import com.example.pdftovoice.ui.components.SynchronizedLyricsDisplay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,19 +46,9 @@ fun PdfToVoiceScreen(
     val pitch by viewModel.pitch.collectAsState()
     val currentLanguage by viewModel.currentLanguage.collectAsState()
     val availableLanguages by viewModel.availableLanguages.collectAsState()
-    val shouldOpenTextPanel by viewModel.shouldOpenTextPanel.collectAsState()
     
     // Use rememberSaveable to persist UI state across configuration changes
     var showLanguageSelector by rememberSaveable { mutableStateOf(false) }
-    var showTextPanel by rememberSaveable { mutableStateOf(false) }
-    
-    // Handle auto-opening of text panel
-    LaunchedEffect(shouldOpenTextPanel) {
-        if (shouldOpenTextPanel) {
-            showTextPanel = true
-            viewModel.clearAutoOpenTextPanel()
-        }
-    }
     
     // PDF picker launcher
     val pdfPickerLauncher = rememberLauncherForActivityResult(
@@ -369,13 +358,12 @@ fun PdfToVoiceScreen(
                 }
             }
             
-            // Enhanced Text Display
+            // Synchronized Lyrics Display - Spotify Style
             if (state.extractedText.isNotBlank()) {
-                EnhancedTextDisplay(
+                SynchronizedLyricsDisplay(
                     text = state.extractedText,
                     currentlyReadingSegment = state.currentlyReadingSegment,
                     isPlaying = isPlaying,
-                    onOpenFullText = { showTextPanel = true },
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -403,17 +391,8 @@ fun PdfToVoiceScreen(
                 },
                 onStop = { viewModel.stopReading() },
                 onSpeedChange = { viewModel.setSpeed(it) },
-                onPitchChange = { viewModel.setPitch(it) },
-                onOpenTextPanel = { showTextPanel = true }
+                onPitchChange = { viewModel.setPitch(it) }
             )
         }
-        
-        // Full Text Panel Dialog
-        TextHighlightingPanel(
-            text = state.extractedText,
-            currentlyReadingSegment = state.currentlyReadingSegment,
-            isVisible = showTextPanel,
-            onDismiss = { showTextPanel = false }
-        )
     }
 }

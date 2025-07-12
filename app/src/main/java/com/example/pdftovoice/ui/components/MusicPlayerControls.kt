@@ -34,7 +34,6 @@ fun MusicPlayerControls(
     onStop: () -> Unit,
     onSpeedChange: (Float) -> Unit,
     onPitchChange: (Float) -> Unit,
-    onOpenTextPanel: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showAdvancedControls by remember { mutableStateOf(false) }
@@ -110,20 +109,6 @@ fun MusicPlayerControls(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
                     }
-                }
-                
-                // Text Panel Button
-                IconButton(
-                    onClick = onOpenTextPanel,
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                    )
-                ) {
-                    Icon(
-                        Icons.Default.TextFields,
-                        contentDescription = "Open Text Panel",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
                 }
             }
             
