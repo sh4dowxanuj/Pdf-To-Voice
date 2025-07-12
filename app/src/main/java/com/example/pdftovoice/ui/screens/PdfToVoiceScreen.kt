@@ -47,10 +47,19 @@ fun PdfToVoiceScreen(
     val pitch by viewModel.pitch.collectAsState()
     val currentLanguage by viewModel.currentLanguage.collectAsState()
     val availableLanguages by viewModel.availableLanguages.collectAsState()
+    val shouldOpenTextPanel by viewModel.shouldOpenTextPanel.collectAsState()
     
     // Use rememberSaveable to persist UI state across configuration changes
     var showLanguageSelector by rememberSaveable { mutableStateOf(false) }
     var showTextPanel by rememberSaveable { mutableStateOf(false) }
+    
+    // Handle auto-opening of text panel
+    LaunchedEffect(shouldOpenTextPanel) {
+        if (shouldOpenTextPanel) {
+            showTextPanel = true
+            viewModel.clearAutoOpenTextPanel()
+        }
+    }
     
     // PDF picker launcher
     val pdfPickerLauncher = rememberLauncherForActivityResult(

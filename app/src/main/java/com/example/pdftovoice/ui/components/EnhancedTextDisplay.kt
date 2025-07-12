@@ -37,13 +37,25 @@ fun EnhancedTextDisplay(
 ) {
     val scrollState = rememberScrollState()
     
-    // Auto-scroll to highlighted text
-    LaunchedEffect(currentlyReadingSegment) {
+    // Enhanced auto-scroll to highlighted text with smooth animation
+    LaunchedEffect(currentlyReadingSegment, isPlaying) {
         if (currentlyReadingSegment.isNotBlank() && text.contains(currentlyReadingSegment, ignoreCase = true)) {
-            // Calculate approximate scroll position based on text position
+            // Calculate more accurate scroll position
             val segmentPosition = text.indexOf(currentlyReadingSegment, ignoreCase = true)
-            val approximateScrollPosition = (segmentPosition.toFloat() / text.length) * scrollState.maxValue
-            scrollState.animateScrollTo(approximateScrollPosition.toInt())
+            val totalLines = text.count { it == '\n' } + 1
+            val linesBeforeSegment = text.substring(0, segmentPosition).count { it == '\n' }
+            
+            // Estimate line height and calculate scroll position
+            val estimatedLineHeight = 24f // Based on our typography
+            val targetScrollPosition = (linesBeforeSegment * estimatedLineHeight).toInt()
+            
+            // Animate to the target position with smooth scrolling
+            if (isPlaying) {
+                scrollState.animateScrollTo(
+                    value = maxOf(0, targetScrollPosition - 100), // Offset to show context
+                    animationSpec = tween(durationMillis = 800, easing = EaseOutCubic)
+                )
+            }
         }
     }
     
@@ -269,16 +281,17 @@ private fun createEnhancedHighlightedText(
                 withStyle(
                     style = SpanStyle(
                         background = if (isPlaying) {
-                            Color(0xFFFFEB3B) // Bright yellow when playing
+                            Color(0xFFFFD54F) // Bright amber when playing
                         } else {
                             Color(0xFFE8F5E8) // Light green when paused
                         },
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = if (isPlaying) FontWeight.ExtraBold else FontWeight.Bold,
                         color = if (isPlaying) {
-                            Color(0xFF1B5E20) // Dark green text
+                            Color(0xFF1A237E) // Deep indigo when playing
                         } else {
-                            Color(0xFF2E7D32) // Medium green text
-                        }
+                            Color(0xFF2E7D32) // Medium green when paused
+                        },
+                        letterSpacing = if (isPlaying) 0.5.sp else 0.sp // Add spacing when playing
                     )
                 ) {
                     append(fullText.substring(startIndex, endIndex))

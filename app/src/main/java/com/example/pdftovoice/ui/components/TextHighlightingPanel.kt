@@ -1,5 +1,6 @@
 package com.example.pdftovoice.ui.components
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -34,6 +35,27 @@ fun TextHighlightingPanel(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val scrollState = rememberScrollState()
+    
+    // Enhanced auto-scroll for full-screen panel
+    LaunchedEffect(currentlyReadingSegment) {
+        if (currentlyReadingSegment.isNotBlank() && text.contains(currentlyReadingSegment, ignoreCase = true)) {
+            val segmentPosition = text.indexOf(currentlyReadingSegment, ignoreCase = true)
+            val totalLines = text.count { it == '\n' } + 1
+            val linesBeforeSegment = text.substring(0, segmentPosition).count { it == '\n' }
+            
+            // Better estimation for full-screen view
+            val estimatedLineHeight = 32f // Larger text in full screen
+            val targetScrollPosition = (linesBeforeSegment * estimatedLineHeight).toInt()
+            
+            // Smooth scroll animation
+            scrollState.animateScrollTo(
+                value = maxOf(0, targetScrollPosition - 200), // More context in full screen
+                animationSpec = tween(durationMillis = 1000, easing = EaseOutCubic)
+            )
+        }
+    }
+    
     if (isVisible) {
         Dialog(
             onDismissRequest = onDismiss,
@@ -138,7 +160,7 @@ fun TextHighlightingPanel(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(horizontal = 16.dp, vertical = 8.dp)
-                                .verticalScroll(rememberScrollState())
+                                .verticalScroll(scrollState) // Use the scrollState with auto-scroll
                         ) {
                             if (text.isNotBlank()) {
                                 Text(
@@ -201,12 +223,13 @@ private fun createHighlightedText(
                 // Text before highlight
                 append(fullText.substring(0, startIndex))
                 
-                // Highlighted text
+                // Enhanced highlighted text with better contrast
                 withStyle(
                     style = SpanStyle(
-                        background = Color(0xFFFFEB3B), // Bright yellow highlight
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1B5E20) // Dark green text for contrast
+                        background = Color(0xFFFFD54F), // Bright amber highlight
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFF1A237E), // Deep indigo text for maximum contrast
+                        letterSpacing = 0.5.sp // Slight letter spacing for readability
                     )
                 ) {
                     append(fullText.substring(startIndex, endIndex))

@@ -79,6 +79,10 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
     private var currentAnalysisJob: Job? = null
     private val fileInfoCache = ConcurrentHashMap<Uri, PdfFileInfo>()
     
+    // State for auto-opening text panel
+    private val _shouldOpenTextPanel = MutableStateFlow(false)
+    val shouldOpenTextPanel: StateFlow<Boolean> = _shouldOpenTextPanel.asStateFlow()
+    
     companion object {
         private const val MAX_CACHE_SIZE = 20
         private const val ERROR_DISPLAY_DURATION = 5000L
@@ -199,9 +203,9 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
                     errorMessage = statusMessage
                 )
                 
-                // Auto-start extraction after analysis
+                // Auto-start extraction after analysis with auto-play enabled
                 if (analysisInfo.isValid) {
-                    extractTextFromPdf(uri, updatedFileInfo)
+                    extractTextFromPdf(uri, updatedFileInfo, autoPlay = true)
                 } else {
                     _state.value = _state.value.copy(
                         errorMessage = analysisInfo.errorMessage ?: "Invalid PDF file"
@@ -219,7 +223,7 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
     
-    private fun extractTextFromPdf(uri: Uri, pdfFileInfo: PdfFileInfo) {
+    private fun extractTextFromPdf(uri: Uri, pdfFileInfo: PdfFileInfo, autoPlay: Boolean = false) {
         currentPdfJob = viewModelScope.launch {
             try {
                 _state.value = _state.value.copy(
@@ -242,6 +246,10 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
                     if (result.hasImages) {
                         append("\n📷 Contains images")
                     }
+                    
+                    if (autoPlay) {
+                        append("\n🎵 Starting playback...")
+                    }
                 }
                 
                 _state.value = _state.value.copy(
@@ -255,6 +263,19 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
                         statusMessage
                     }
                 )
+                
+                // Auto-play if requested and TTS is initialized
+                if (autoPlay && _state.value.isTtsInitialized && result.text.isNotBlank()) {
+                    // Small delay to let UI update
+                    kotlinx.coroutines.delay(500)
+                    playText()
+                    // Request to open text panel for better viewing
+                    kotlinx.coroutines.delay(1000)
+                    _shouldOpenTextPanel.value = true
+                }
+                
+                // Request to open text panel automatically
+                requestOpenTextPanel()
                 
             } catch (e: Exception) {
                 Log.e(TAG, "Text extraction failed", e)
@@ -363,6 +384,16 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
                 errorMessage = "ℹ️ $methodInfo"
             )
         }
+    }
+    
+    // Clear the request to auto-open text panel
+    fun clearAutoOpenTextPanel() {
+        _shouldOpenTextPanel.value = false
+    }
+    
+    // Request to auto-open the text panel after processing
+    fun requestOpenTextPanel() {
+        _shouldOpenTextPanel.value = true
     }
     
     override fun onCleared() {
