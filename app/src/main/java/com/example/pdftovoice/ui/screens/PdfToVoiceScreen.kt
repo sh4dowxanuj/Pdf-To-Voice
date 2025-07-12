@@ -49,6 +49,7 @@ fun PdfToVoiceScreen(
     
     // Use rememberSaveable to persist UI state across configuration changes
     var showLanguageSelector by rememberSaveable { mutableStateOf(false) }
+    var showTextPanel by rememberSaveable { mutableStateOf(false) }
     
     // PDF picker launcher
     val pdfPickerLauncher = rememberLauncherForActivityResult(

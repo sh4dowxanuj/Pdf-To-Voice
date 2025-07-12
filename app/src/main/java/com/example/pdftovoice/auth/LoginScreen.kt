@@ -30,7 +30,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.pdftovoice.ui.theme.GoogleBlue
-import com.example.pdftovoice.ui.components.GoogleIcon
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.common.api.ApiException
 
@@ -264,8 +263,12 @@ fun LoginScreen(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Google icon
-                GoogleIcon()
+                // Google icon placeholder
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .background(Color.Red, RoundedCornerShape(2.dp))
+                )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = "Continue with Google",
