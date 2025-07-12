@@ -234,13 +234,19 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
                 Log.d(TAG, "Text extraction completed using ${result.method}")
                 
                 val statusMessage = buildString {
-                    append("✅ Extraction Complete!\n")
-                    append("Method: ${result.method.name.replace("_", " ")}\n")
-                    append("Text Length: ${result.text.length} characters\n")
-                    append("Pages Processed: ${result.pageCount}")
-                    
-                    if (result.hasImages) {
-                        append("\n📷 Contains images")
+                    if (result.method == PdfProcessor.ExtractionMethod.FALLBACK_SAMPLE) {
+                        append("⚠️ Text extraction failed\n")
+                        append("Unable to extract readable text from this PDF.\n")
+                        append("Please try a different PDF file.")
+                    } else {
+                        append("✅ Extraction Complete!\n")
+                        append("Method: ${result.method.name.replace("_", " ")}\n")
+                        append("Text Length: ${result.text.length} characters\n")
+                        append("Pages Processed: ${result.pageCount}")
+                        
+                        if (result.hasImages) {
+                            append("\n📷 Contains images")
+                        }
                     }
                 }
                 
@@ -249,7 +255,9 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
                     extractionMethod = result.method,
                     isLoading = false,
                     processingStatus = null,
-                    errorMessage = if (result.text.length > 50000) {
+                    errorMessage = if (result.method == PdfProcessor.ExtractionMethod.FALLBACK_SAMPLE) {
+                        statusMessage
+                    } else if (result.text.length > 50000) {
                         "Large document extracted (${result.text.length} characters). $statusMessage"
                     } else {
                         statusMessage

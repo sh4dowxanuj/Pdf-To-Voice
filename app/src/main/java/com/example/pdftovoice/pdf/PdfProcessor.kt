@@ -76,35 +76,54 @@ class PdfProcessor(private val context: Context) {
     }
 
     private suspend fun extractTextWithMethod(uri: Uri): ExtractionResult = withContext(Dispatchers.IO) {
+        Log.d(TAG, "Starting text extraction from URI: $uri")
         val tempFile = createTempFile(uri)
         
         try {
             // Try multiple extraction methods in order of reliability
             
             // Method 1: PDFBox Android (Good for text-based PDFs)
+            Log.d(TAG, "Trying PDFBox extraction...")
             val pdfboxResult = tryPdfBoxExtraction(tempFile)
             if (pdfboxResult.text.length >= MIN_TEXT_LENGTH) {
-                Log.d(TAG, "Successfully extracted using PDFBox")
+                Log.d(TAG, "Successfully extracted using PDFBox: ${pdfboxResult.text.length} characters")
                 return@withContext pdfboxResult
+            } else {
+                Log.d(TAG, "PDFBox extraction returned insufficient text: ${pdfboxResult.text.length} characters")
             }
             
             // Method 2: OCR with Android PdfRenderer (For scanned/image PDFs)
+            Log.d(TAG, "Trying OCR extraction...")
             val ocrResult = tryOcrExtraction(tempFile)
             if (ocrResult.text.length >= MIN_TEXT_LENGTH) {
-                Log.d(TAG, "Successfully extracted using OCR")
+                Log.d(TAG, "Successfully extracted using OCR: ${ocrResult.text.length} characters")
                 return@withContext ocrResult
+            } else {
+                Log.d(TAG, "OCR extraction returned insufficient text: ${ocrResult.text.length} characters")
             }
             
             // Method 3: Hybrid approach (Combine PDFBox + OCR)
+            Log.d(TAG, "Trying hybrid extraction...")
             val hybridResult = tryHybridExtraction(tempFile)
             if (hybridResult.text.length >= MIN_TEXT_LENGTH) {
-                Log.d(TAG, "Successfully extracted using hybrid approach")
+                Log.d(TAG, "Successfully extracted using hybrid approach: ${hybridResult.text.length} characters")
                 return@withContext hybridResult
+            } else {
+                Log.d(TAG, "Hybrid extraction returned insufficient text: ${hybridResult.text.length} characters")
             }
             
-            // Fallback: Return sample text with file info
-            Log.w(TAG, "All extraction methods failed, using fallback sample")
-            return@withContext createFallbackResult(tempFile)
+            // All extraction methods failed - return empty result with error info
+            Log.w(TAG, "All extraction methods failed, no text could be extracted")
+            return@withContext ExtractionResult(
+                text = "No text could be extracted from this PDF. The document may be:\n\n" +
+                       "• Scanned images without recognizable text\n" +
+                       "• Password protected or encrypted\n" +
+                       "• Corrupted or in an unsupported format\n" +
+                       "• Contains only images or graphics\n\n" +
+                       "Please try a different PDF file with readable text content.",
+                method = ExtractionMethod.FALLBACK_SAMPLE,
+                pageCount = 1
+            )
             
         } finally {
             tempFile.delete()
@@ -136,21 +155,32 @@ class PdfProcessor(private val context: Context) {
 
     private suspend fun tryPdfBoxExtraction(file: File): ExtractionResult = withContext(Dispatchers.IO) {
         try {
+            Log.d(TAG, "Attempting PDFBox extraction from file: ${file.name}, size: ${file.length()} bytes")
+            
             val document = PDDocument.load(file)
+            Log.d(TAG, "PDFBox loaded PDF successfully")
+            
             val pageCount = document.numberOfPages
+            Log.d(TAG, "PDF has $pageCount pages")
+            
             val stripper = PDFTextStripper()
             
             // Extract all text at once for better performance
             val text = stripper.getText(document)
+            Log.d(TAG, "PDFBox extracted ${text.length} characters")
+            
             document.close()
             
+            val trimmedText = text.trim()
+            Log.d(TAG, "PDFBox final text length: ${trimmedText.length}")
+            
             ExtractionResult(
-                text = text.trim(),
+                text = trimmedText,
                 method = ExtractionMethod.PDFBOX_ANDROID,
                 pageCount = pageCount
             )
         } catch (e: Exception) {
-            Log.w(TAG, "PDFBox extraction failed: ${e.message}")
+            Log.w(TAG, "PDFBox extraction failed: ${e.message}", e)
             when {
                 e.message?.contains("password", ignoreCase = true) == true -> {
                     throw Exception("This PDF is password protected and cannot be read.")
