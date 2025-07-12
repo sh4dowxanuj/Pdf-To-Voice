@@ -54,38 +54,46 @@ fun HomeScreen(
     
     // Demo text for showcasing autoscroll and highlighting features
     val demoText = """
-        Welcome to the PDF to Voice Reader! This application transforms your PDF documents into an engaging audio experience.
-        
-        Our innovative autoscrolling technology follows along as text is being read aloud. The highlighted sections move smoothly through the document, ensuring you never lose your place.
-        
-        The synchronized lyrics display works just like your favorite music apps. Each sentence is highlighted in real-time as it's being spoken.
-        
-        You can also open any text in fullscreen mode for an immersive reading experience. The fullscreen view includes enhanced typography and text selection capabilities.
-        
-        This demo showcases the core features: automatic scrolling, real-time highlighting, and responsive design that adapts to any screen size.
-        
-        Try the fullscreen button to see how the text appears in a dedicated reading environment with enhanced readability features.
-        
-        The application supports PDF files of any size and automatically breaks them into manageable segments for optimal listening experience.
+Welcome to the PDF to Voice Reader! This application transforms your PDF documents into an engaging audio experience.
+
+Our innovative autoscrolling technology follows along as text is being read aloud. The highlighted sections move smoothly through the document, ensuring you never lose your place.
+
+The synchronized lyrics display works just like your favorite music apps. Each sentence is highlighted in real-time as it's being spoken.
+
+You can also open any text in fullscreen mode for an immersive reading experience. The fullscreen view includes enhanced typography and text selection capabilities.
+
+This demo showcases the core features: automatic scrolling, real-time highlighting, and responsive design that adapts to any screen size.
+
+Try the fullscreen button to see how the text appears in a dedicated reading environment with enhanced readability features.
+
+The application supports PDF files of any size and automatically breaks them into manageable segments for optimal listening experience.
     """.trimIndent()
     
-    // Demo segments for auto-highlight simulation
+    // Demo segments for auto-highlight simulation - simplified for better matching
     val demoSegments = remember {
-        demoText.split(". ").filter { it.isNotBlank() }.map { "$it." }
+        listOf(
+            "Welcome to the PDF to Voice Reader!",
+            "This application transforms your PDF documents into an engaging audio experience.",
+            "Our innovative autoscrolling technology follows along as text is being read aloud.",
+            "The highlighted sections move smoothly through the document, ensuring you never lose your place.",
+            "The synchronized lyrics display works just like your favorite music apps.",
+            "Each sentence is highlighted in real-time as it's being spoken.",
+            "You can also open any text in fullscreen mode for an immersive reading experience.",
+            "The fullscreen view includes enhanced typography and text selection capabilities.",
+            "This demo showcases the core features: automatic scrolling, real-time highlighting, and responsive design that adapts to any screen size.",
+            "Try the fullscreen button to see how the text appears in a dedicated reading environment with enhanced readability features.",
+            "The application supports PDF files of any size and automatically breaks them into manageable segments for optimal listening experience."
+        )
     }
     
-    // Auto-advance demo highlighting every 3 seconds
+    // Auto-advance demo highlighting every 2.5 seconds for better visibility
     LaunchedEffect(demoIsPlaying) {
         if (demoIsPlaying && showDemoText) {
             var currentIndex = 0
             while (demoIsPlaying && currentIndex < demoSegments.size) {
                 currentDemoSegment = demoSegments[currentIndex]
-                kotlinx.coroutines.delay(3000) // 3 seconds per segment
-                currentIndex++
-            }
-            if (currentIndex >= demoSegments.size) {
-                demoIsPlaying = false
-                currentDemoSegment = ""
+                kotlinx.coroutines.delay(2500) // 2.5 seconds per segment for better readability
+                currentIndex = (currentIndex + 1) % demoSegments.size // Loop back to beginning
             }
         }
     }

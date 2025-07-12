@@ -132,13 +132,25 @@ fun TextHighlightingPanel(
                         }
                     }
                     
-                    // Main Text Content with Highlighting
+                    // Main Text Content with Highlighting and Auto-scroll
                     SelectionContainer {
+                        val scrollState = rememberScrollState()
+                        
+                        // Auto-scroll to highlighted text
+                        LaunchedEffect(currentlyReadingSegment) {
+                            if (currentlyReadingSegment.isNotBlank() && text.contains(currentlyReadingSegment, ignoreCase = true)) {
+                                // Calculate approximate scroll position based on text position
+                                val segmentPosition = text.indexOf(currentlyReadingSegment, ignoreCase = true)
+                                val approximateScrollPosition = (segmentPosition.toFloat() / text.length) * scrollState.maxValue
+                                scrollState.animateScrollTo(approximateScrollPosition.toInt())
+                            }
+                        }
+                        
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(horizontal = 16.dp, vertical = 8.dp)
-                                .verticalScroll(rememberScrollState())
+                                .verticalScroll(scrollState)
                         ) {
                             if (text.isNotBlank()) {
                                 Text(

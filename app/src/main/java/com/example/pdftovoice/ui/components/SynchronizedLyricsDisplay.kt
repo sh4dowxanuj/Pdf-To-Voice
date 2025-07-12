@@ -32,27 +32,25 @@ fun SynchronizedLyricsDisplay(
     isPlaying: Boolean,
     modifier: Modifier = Modifier
 ) {
-    // Split text into lines/sentences for synchronized display - matching TTS segmentation
+    // Split text into lines/sentences for synchronized display - matching demo segmentation
     val textLines = remember(text) {
         if (text.isBlank()) emptyList()
         else {
-            // Match the same segmentation logic as TTS Manager
-            val segments = text
-                .split(Regex("(?<=[.!?])\\s+"))
+            // Split by sentences (periods, exclamation marks, question marks)
+            // and clean up empty lines and extra whitespace
+            text.split(Regex("[.!?]"))
                 .map { it.trim() }
                 .filter { it.isNotBlank() }
-                .flatMap { segment ->
-                    // Break down very long segments (matching TTS MAX_SEGMENT_LENGTH of 200)
-                    if (segment.length > 200) {
-                        segment.chunked(200) { chunk ->
-                            val chunkStr = chunk.toString().trim()
-                            if (!chunkStr.matches(Regex(".*[.!?]$"))) "$chunkStr." else chunkStr
+                .map { line ->
+                    // Add back the punctuation for display consistency
+                    if (!line.matches(Regex(".*[.!?]$"))) {
+                        when {
+                            text.contains("$line!") -> "$line!"
+                            text.contains("$line?") -> "$line?"
+                            else -> "$line."
                         }
-                    } else {
-                        listOf(if (!segment.matches(Regex(".*[.!?]$"))) "$segment." else segment)
-                    }
+                    } else line
                 }
-            segments
         }
     }
     
@@ -60,30 +58,44 @@ fun SynchronizedLyricsDisplay(
     val currentLineIndex = remember(currentlyReadingSegment, textLines) {
         if (currentlyReadingSegment.isBlank() || textLines.isEmpty()) -1
         else {
-            // First try exact contains match
+            // Clean the segment for matching (remove punctuation)
+            val cleanSegment = currentlyReadingSegment.replace(Regex("[.!?]"), "").trim()
+            
+            // First try exact contains match (line contains segment)
             var foundIndex = textLines.indexOfFirst { line ->
-                line.contains(currentlyReadingSegment, ignoreCase = true)
+                val cleanLine = line.replace(Regex("[.!?]"), "").trim()
+                cleanLine.contains(cleanSegment, ignoreCase = true)
             }
             
             // If not found, try reverse match (segment contains line)
             if (foundIndex == -1) {
                 foundIndex = textLines.indexOfFirst { line ->
-                    currentlyReadingSegment.contains(line, ignoreCase = true)
+                    val cleanLine = line.replace(Regex("[.!?]"), "").trim()
+                    cleanSegment.contains(cleanLine, ignoreCase = true)
                 }
             }
             
-            // If still not found, try partial word matching
+            // If still not found, try word-based matching
             if (foundIndex == -1) {
-                val segmentWords = currentlyReadingSegment.lowercase().split(Regex("\\s+"))
+                val segmentWords = cleanSegment.lowercase().split(Regex("\\s+")).filter { it.isNotBlank() }
                 foundIndex = textLines.indexOfFirst { line ->
-                    val lineWords = line.lowercase().split(Regex("\\s+"))
-                    // Check if at least 50% of words match
-                    val matchCount = segmentWords.count { segmentWord ->
-                        lineWords.any { lineWord ->
-                            segmentWord.contains(lineWord) || lineWord.contains(segmentWord)
+                    val cleanLine = line.replace(Regex("[.!?]"), "").trim()
+                    val lineWords = cleanLine.lowercase().split(Regex("\\s+")).filter { it.isNotBlank() }
+                    
+                    // Check if the first few words match
+                    if (segmentWords.size >= 3 && lineWords.size >= 3) {
+                        segmentWords.take(3) == lineWords.take(3)
+                    } else {
+                        // For shorter segments, require at least 50% word overlap
+                        val matchCount = segmentWords.count { segmentWord ->
+                            lineWords.any { lineWord ->
+                                segmentWord == lineWord || 
+                                segmentWord.contains(lineWord) || 
+                                lineWord.contains(segmentWord)
+                            }
                         }
+                        matchCount >= maxOf(1, segmentWords.size / 2)
                     }
-                    matchCount >= maxOf(1, segmentWords.size / 2)
                 }
             }
             
