@@ -1,5 +1,6 @@
 package com.example.pdftovoice.navigation
 
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -14,7 +15,7 @@ import com.example.pdftovoice.auth.SignUpScreen
 import com.example.pdftovoice.ui.screens.PdfToVoiceScreen
 
 @Composable
-fun AuthNavGraph() {
+fun AuthNavGraph(windowSizeClass: WindowSizeClass) {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = viewModel()
     val authState by authViewModel.authState
@@ -41,6 +42,7 @@ fun AuthNavGraph() {
     ) {
         composable("login") {
             LoginScreen(
+                windowSizeClass = windowSizeClass,
                 onNavigateToSignUp = {
                     navController.navigate("signup")
                 },
@@ -54,6 +56,7 @@ fun AuthNavGraph() {
         
         composable("signup") {
             SignUpScreen(
+                windowSizeClass = windowSizeClass,
                 onNavigateToLogin = {
                     navController.popBackStack()
                 },
@@ -67,6 +70,7 @@ fun AuthNavGraph() {
         
         composable("home") {
             PdfToVoiceScreen(
+                windowSizeClass = windowSizeClass,
                 onLogout = {
                     authViewModel.signOut()
                     navController.navigate("login") {

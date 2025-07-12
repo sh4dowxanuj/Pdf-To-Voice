@@ -10,6 +10,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import com.example.pdftovoice.navigation.AuthNavGraph
@@ -23,6 +25,7 @@ class MainActivity : ComponentActivity() {
         // Handle permission results if needed
     }
     
+    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
@@ -31,11 +34,13 @@ class MainActivity : ComponentActivity() {
         
         setContent {
             PdfToVoiceTheme {
+                val windowSizeClass = calculateWindowSizeClass(this)
+                
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    AuthNavGraph()
+                    AuthNavGraph(windowSizeClass = windowSizeClass)
                 }
             }
         }

@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,12 +31,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.pdftovoice.ui.theme.GoogleBlue
+import com.example.pdftovoice.ui.components.ResponsiveTextField
+import com.example.pdftovoice.ui.components.ResponsiveButton
+import com.example.pdftovoice.ui.components.ResponsiveTextButton
+import com.example.pdftovoice.ui.responsive.ResponsiveDimensions.horizontalPadding
+import com.example.pdftovoice.ui.responsive.ResponsiveDimensions.verticalPadding
+import com.example.pdftovoice.ui.responsive.ResponsiveDimensions.sectionSpacing
+import com.example.pdftovoice.ui.responsive.ResponsiveDimensions.cornerRadius
+import com.example.pdftovoice.ui.responsive.ResponsiveLayout.contentMaxWidth
+import com.example.pdftovoice.ui.responsive.ResponsiveLayout.isCompact
+import com.example.pdftovoice.ui.responsive.ResponsiveTypography.scaleFactor
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.common.api.ApiException
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
+    windowSizeClass: WindowSizeClass,
     onNavigateToSignUp: () -> Unit,
     onLoginSuccess: () -> Unit,
     viewModel: AuthViewModel = viewModel()
@@ -87,215 +99,175 @@ fun LoginScreen(
         }
     }
 
+    // Responsive dimensions
+    val horizontalPadding = windowSizeClass.horizontalPadding()
+    val verticalPadding = windowSizeClass.verticalPadding()
+    val sectionSpacing = windowSizeClass.sectionSpacing()
+    val cornerRadius = windowSizeClass.cornerRadius()
+    val contentMaxWidth = windowSizeClass.contentMaxWidth()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .padding(24.dp),
+            .widthIn(max = contentMaxWidth)
+            .padding(horizontalPadding),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(60.dp))
+        Spacer(modifier = Modifier.height(verticalPadding * 2))
         
         // App Logo/Title
         Text(
             text = "PDF to Voice",
-            fontSize = 32.sp,
+            fontSize = if (windowSizeClass.isCompact()) 28.sp else 32.sp,
             fontWeight = FontWeight.Bold,
             color = GoogleBlue,
             textAlign = TextAlign.Center
         )
         
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(verticalPadding / 2))
         
         Text(
             text = "Sign in to your account",
-            fontSize = 16.sp,
+            fontSize = if (windowSizeClass.isCompact()) 14.sp else 16.sp,
             color = Color.Gray,
             textAlign = TextAlign.Center
         )
         
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(sectionSpacing * 2))
         
-        // Email Field
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Email,
-                    contentDescription = "Email Icon"
-                )
-            },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+        // Login Form Card
+        Card(
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = GoogleBlue,
-                focusedLabelColor = GoogleBlue
-            )
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Password Field
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password") },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = "Password Icon"
+            shape = RoundedCornerShape(cornerRadius),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(
+                modifier = Modifier.padding(sectionSpacing),
+                verticalArrangement = Arrangement.spacedBy(sectionSpacing)
+            ) {
+                // Email Field
+                ResponsiveTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = "Email",
+                    windowSizeClass = windowSizeClass,
+                    leadingIcon = Icons.Default.Email,
+                    keyboardType = KeyboardType.Email,
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = "Enter your email"
                 )
-            },
-            trailingIcon = {
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(
-                        imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                
+                // Password Field
+                ResponsiveTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = "Password",
+                    windowSizeClass = windowSizeClass,
+                    leadingIcon = Icons.Default.Lock,
+                    keyboardType = KeyboardType.Password,
+                    isPassword = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = "Enter your password",
+                    isError = errorMessage.isNotEmpty(),
+                    errorMessage = if (errorMessage.isNotEmpty()) errorMessage else null
+                )
+                
+                // Login Button
+                ResponsiveButton(
+                    onClick = {
+                        if (email.isNotEmpty() && password.isNotEmpty()) {
+                            isLoading = true
+                            viewModel.signIn(email, password) { success, error ->
+                                isLoading = false
+                                if (!success) {
+                                    errorMessage = error ?: "Login failed"
+                                }
+                            }
+                        } else {
+                            errorMessage = "Please fill in all fields"
+                        }
+                    },
+                    windowSizeClass = windowSizeClass,
+                    text = if (isLoading) "Signing in..." else "Sign In",
+                    enabled = !isLoading,
+                    colors = ButtonDefaults.buttonColors(containerColor = GoogleBlue),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                // Divider
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Divider(modifier = Modifier.weight(1f))
+                    Text(
+                        text = "or",
+                        modifier = Modifier.padding(horizontal = sectionSpacing),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        fontSize = (14 * windowSizeClass.scaleFactor()).sp
+                    )
+                    Divider(modifier = Modifier.weight(1f))
+                }
+                // Google Sign In Button
+                OutlinedButton(
+                    onClick = { 
+                        isLoading = true
+                        errorMessage = ""
+                        try {
+                            val googleSignInClient = viewModel.authService.getGoogleSignInClient(context)
+                            val signInIntent = googleSignInClient.signInIntent
+                            googleSignInLauncher.launch(signInIntent)
+                        } catch (e: IllegalStateException) {
+                            isLoading = false
+                            errorMessage = "Google Sign-In not configured. Check setup instructions."
+                        } catch (e: Exception) {
+                            isLoading = false
+                            errorMessage = "Google Sign-In error: ${e.message}"
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(cornerRadius),
+                    enabled = !isLoading
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Google icon placeholder
+                        Box(
+                            modifier = Modifier
+                                .size((20 * windowSizeClass.scaleFactor()).dp)
+                                .background(Color.Red, RoundedCornerShape(2.dp))
+                        )
+                        Spacer(modifier = Modifier.width(sectionSpacing))
+                        Text(
+                            text = "Continue with Google",
+                            fontSize = (16 * windowSizeClass.scaleFactor()).sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.weight(1f))
+                
+                // Sign Up Link
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Don't have an account? ",
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        fontSize = (14 * windowSizeClass.scaleFactor()).sp
+                    )
+                    ResponsiveTextButton(
+                        onClick = onNavigateToSignUp,
+                        windowSizeClass = windowSizeClass,
+                        text = "Sign Up"
                     )
                 }
-            },
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = GoogleBlue,
-                focusedLabelColor = GoogleBlue
-            )
-        )
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // Error Message
-        if (errorMessage.isNotEmpty()) {
-            Text(
-                text = errorMessage,
-                color = MaterialTheme.colorScheme.error,
-                fontSize = 14.sp,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-        }
-        
-        // Login Button
-        Button(
-            onClick = {
-                if (email.isNotEmpty() && password.isNotEmpty()) {
-                    isLoading = true
-                    viewModel.signIn(email, password) { success, error ->
-                        isLoading = false
-                        if (!success) {
-                            errorMessage = error ?: "Login failed"
-                        }
-                    }
-                } else {
-                    errorMessage = "Please fill in all fields"
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = GoogleBlue
-            ),
-            shape = RoundedCornerShape(8.dp),
-            enabled = !isLoading
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = Color.White,
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Text(
-                    text = "Sign In",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // Divider
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Divider(modifier = Modifier.weight(1f))
-            Text(
-                text = "or",
-                modifier = Modifier.padding(horizontal = 16.dp),
-                color = Color.Gray
-            )
-            Divider(modifier = Modifier.weight(1f))
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // Google Sign In Button
-        OutlinedButton(
-            onClick = { 
-                isLoading = true
-                errorMessage = ""
-                try {
-                    val googleSignInClient = viewModel.authService.getGoogleSignInClient(context)
-                    val signInIntent = googleSignInClient.signInIntent
-                    googleSignInLauncher.launch(signInIntent)
-                } catch (e: IllegalStateException) {
-                    isLoading = false
-                    errorMessage = "Google Sign-In not configured. Check setup instructions."
-                } catch (e: Exception) {
-                    isLoading = false
-                    errorMessage = "Google Sign-In error: ${e.message}"
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            shape = RoundedCornerShape(8.dp),
-            enabled = !isLoading
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Google icon placeholder
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .background(Color.Red, RoundedCornerShape(2.dp))
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "Continue with Google",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.Black
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.weight(1f))
-        
-        // Sign Up Link
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Don't have an account? ",
-                color = Color.Gray
-            )
-            TextButton(onClick = onNavigateToSignUp) {
-                Text(
-                    text = "Sign Up",
-                    color = GoogleBlue,
-                    fontWeight = FontWeight.Medium
-                )
             }
         }
     }

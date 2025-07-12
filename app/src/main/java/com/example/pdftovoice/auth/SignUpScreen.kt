@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,10 +26,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.pdftovoice.ui.theme.GoogleBlue
+import com.example.pdftovoice.ui.components.ResponsiveTextField
+import com.example.pdftovoice.ui.components.ResponsiveButton
+import com.example.pdftovoice.ui.components.ResponsiveTextButton
+import com.example.pdftovoice.ui.responsive.ResponsiveDimensions.horizontalPadding
+import com.example.pdftovoice.ui.responsive.ResponsiveDimensions.verticalPadding
+import com.example.pdftovoice.ui.responsive.ResponsiveDimensions.sectionSpacing
+import com.example.pdftovoice.ui.responsive.ResponsiveDimensions.cornerRadius
+import com.example.pdftovoice.ui.responsive.ResponsiveLayout.contentMaxWidth
+import com.example.pdftovoice.ui.responsive.ResponsiveLayout.isCompact
+import com.example.pdftovoice.ui.responsive.ResponsiveTypography.scaleFactor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SignUpScreen(
+    windowSizeClass: WindowSizeClass,
     onNavigateToLogin: () -> Unit,
     onSignUpSuccess: () -> Unit,
     viewModel: AuthViewModel = viewModel()
@@ -48,18 +60,26 @@ fun SignUpScreen(
         }
     }
 
+    // Responsive dimensions
+    val horizontalPadding = windowSizeClass.horizontalPadding()
+    val verticalPadding = windowSizeClass.verticalPadding()
+    val sectionSpacing = windowSizeClass.sectionSpacing()
+    val cornerRadius = windowSizeClass.cornerRadius()
+    val contentMaxWidth = windowSizeClass.contentMaxWidth()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .padding(24.dp),
+            .widthIn(max = contentMaxWidth)
+            .padding(horizontalPadding),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Top Bar with Back Button
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 16.dp),
+                .padding(top = verticalPadding),
             horizontalArrangement = Arrangement.Start
         ) {
             IconButton(onClick = onNavigateToLogin) {
@@ -71,145 +91,81 @@ fun SignUpScreen(
             }
         }
         
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(sectionSpacing))
         
         // Title
         Text(
             text = "Create Account",
-            fontSize = 32.sp,
+            fontSize = if (windowSizeClass.isCompact()) 28.sp else 32.sp,
             fontWeight = FontWeight.Bold,
             color = GoogleBlue,
             textAlign = TextAlign.Center
         )
         
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(verticalPadding / 2))
         
         Text(
             text = "Sign up to get started",
-            fontSize = 16.sp,
-            color = Color.Gray,
+            fontSize = (if (windowSizeClass.isCompact()) 14f else 16f * windowSizeClass.scaleFactor()).sp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
             textAlign = TextAlign.Center
         )
         
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(sectionSpacing * 2))
         
         // Full Name Field
-        OutlinedTextField(
+        ResponsiveTextField(
             value = fullName,
             onValueChange = { fullName = it },
-            label = { Text("Full Name") },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = "Name Icon"
-                )
-            },
+            label = "Full Name",
+            windowSizeClass = windowSizeClass,
+            leadingIcon = Icons.Default.Person,
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = GoogleBlue,
-                focusedLabelColor = GoogleBlue
-            )
+            placeholder = "Enter your full name"
         )
-        
-        Spacer(modifier = Modifier.height(16.dp))
         
         // Email Field
-        OutlinedTextField(
+        ResponsiveTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Email") },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Email,
-                    contentDescription = "Email Icon"
-                )
-            },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            label = "Email",
+            windowSizeClass = windowSizeClass,
+            leadingIcon = Icons.Default.Email,
+            keyboardType = KeyboardType.Email,
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = GoogleBlue,
-                focusedLabelColor = GoogleBlue
-            )
+            placeholder = "Enter your email"
         )
-        
-        Spacer(modifier = Modifier.height(16.dp))
         
         // Password Field
-        OutlinedTextField(
+        ResponsiveTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Password") },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = "Password Icon"
-                )
-            },
-            trailingIcon = {
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(
-                        imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = if (passwordVisible) "Hide password" else "Show password"
-                    )
-                }
-            },
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            label = "Password",
+            windowSizeClass = windowSizeClass,
+            leadingIcon = Icons.Default.Lock,
+            keyboardType = KeyboardType.Password,
+            isPassword = true,
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = GoogleBlue,
-                focusedLabelColor = GoogleBlue
-            )
+            placeholder = "Enter your password"
         )
-        
-        Spacer(modifier = Modifier.height(16.dp))
         
         // Confirm Password Field
-        OutlinedTextField(
+        ResponsiveTextField(
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
-            label = { Text("Confirm Password") },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = "Confirm Password Icon"
-                )
-            },
-            trailingIcon = {
-                IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
-                    Icon(
-                        imageVector = if (confirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = if (confirmPasswordVisible) "Hide password" else "Show password"
-                    )
-                }
-            },
-            visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            label = "Confirm Password",
+            windowSizeClass = windowSizeClass,
+            leadingIcon = Icons.Default.Lock,
+            keyboardType = KeyboardType.Password,
+            isPassword = true,
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = GoogleBlue,
-                focusedLabelColor = GoogleBlue
-            )
+            placeholder = "Confirm your password",
+            isError = errorMessage.isNotEmpty(),
+            errorMessage = if (errorMessage.isNotEmpty()) errorMessage else null
         )
         
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // Error Message
-        if (errorMessage.isNotEmpty()) {
-            Text(
-                text = errorMessage,
-                color = MaterialTheme.colorScheme.error,
-                fontSize = 14.sp,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-        }
-        
         // Sign Up Button
-        Button(
+        ResponsiveButton(
             onClick = {
                 when {
                     fullName.isEmpty() || email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty() -> {
@@ -232,31 +188,14 @@ fun SignUpScreen(
                     }
                 }
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = GoogleBlue
-            ),
-            shape = RoundedCornerShape(8.dp),
-            enabled = !isLoading
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = Color.White,
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Text(
-                    text = "Create Account",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        }
+            windowSizeClass = windowSizeClass,
+            text = if (isLoading) "Creating account..." else "Sign Up",
+            enabled = !isLoading,
+            colors = ButtonDefaults.buttonColors(containerColor = GoogleBlue),
+            modifier = Modifier.fillMaxWidth()
+        )
         
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(sectionSpacing))
         
         // Divider
         Row(
@@ -266,21 +205,18 @@ fun SignUpScreen(
             Divider(modifier = Modifier.weight(1f))
             Text(
                 text = "or",
-                modifier = Modifier.padding(horizontal = 16.dp),
-                color = Color.Gray
+                modifier = Modifier.padding(horizontal = sectionSpacing),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                fontSize = (14 * windowSizeClass.scaleFactor()).sp
             )
             Divider(modifier = Modifier.weight(1f))
         }
         
-        Spacer(modifier = Modifier.height(24.dp))
-        
         // Google Sign Up Button (placeholder for now)
         OutlinedButton(
             onClick = { /* TODO: Implement Google Sign Up */ },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            shape = RoundedCornerShape(8.dp)
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(cornerRadius)
         ) {
             Row(
                 horizontalArrangement = Arrangement.Center,
@@ -289,15 +225,15 @@ fun SignUpScreen(
                 // Google icon placeholder
                 Box(
                     modifier = Modifier
-                        .size(20.dp)
+                        .size((20 * windowSizeClass.scaleFactor()).dp)
                         .background(Color.Red, RoundedCornerShape(2.dp))
                 )
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(sectionSpacing))
                 Text(
                     text = "Sign up with Google",
-                    fontSize = 16.sp,
+                    fontSize = (16 * windowSizeClass.scaleFactor()).sp,
                     fontWeight = FontWeight.Medium,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -311,15 +247,14 @@ fun SignUpScreen(
         ) {
             Text(
                 text = "Already have an account? ",
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                fontSize = (14 * windowSizeClass.scaleFactor()).sp
             )
-            TextButton(onClick = onNavigateToLogin) {
-                Text(
-                    text = "Sign In",
-                    color = GoogleBlue,
-                    fontWeight = FontWeight.Medium
-                )
-            }
+            ResponsiveTextButton(
+                onClick = onNavigateToLogin,
+                windowSizeClass = windowSizeClass,
+                text = "Sign In"
+            )
         }
     }
 }
