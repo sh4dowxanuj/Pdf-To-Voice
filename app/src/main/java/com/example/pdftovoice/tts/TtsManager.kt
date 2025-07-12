@@ -262,6 +262,7 @@ class TtsManager(private val context: Context) {
             textToSpeech?.stop()
             _isPaused.value = true
             _isPlaying.value = false
+            // Keep current segment when pausing
         }
     }
     

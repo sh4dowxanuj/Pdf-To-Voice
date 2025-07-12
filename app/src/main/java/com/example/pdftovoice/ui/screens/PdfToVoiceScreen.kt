@@ -40,7 +40,7 @@ fun PdfToVoiceScreen(
     viewModel: PdfToVoiceViewModel = viewModel(),
     onLogout: () -> Unit = {}
 ) {
-    // Use combined state to get the currently reading segment properly
+    // Optimize state collection - combine all related states
     val state by viewModel.combinedState.collectAsState(initial = PdfToVoiceState())
     val isPlaying by viewModel.isPlaying.collectAsState()
     val isPaused by viewModel.isPaused.collectAsState()
@@ -49,8 +49,36 @@ fun PdfToVoiceScreen(
     val currentLanguage by viewModel.currentLanguage.collectAsState()
     val availableLanguages by viewModel.availableLanguages.collectAsState()
     
-    // Use rememberSaveable to persist UI state across configuration changes
+    // UI state - use rememberSaveable for configuration changes
     var showLanguageSelector by rememberSaveable { mutableStateOf(false) }
+    
+    // Memoize heavy computations
+    val textSegments = remember(state.extractedText) {
+        if (state.extractedText.isBlank()) emptyList()
+        else state.extractedText.split(Regex("(?<=[.!?])\\s+|\\n"))
+            .filter { it.isNotBlank() }
+            .map { it.trim() }
+    }
+    
+    val currentSegmentIndex = remember(state.currentlyReadingSegment, textSegments) {
+        if (state.currentlyReadingSegment.isBlank() || textSegments.isEmpty()) -1
+        else {
+            // Optimized matching with early exit
+            textSegments.indexOfFirst { segment ->
+                segment.contains(state.currentlyReadingSegment, ignoreCase = true) ||
+                state.currentlyReadingSegment.contains(segment, ignoreCase = true)
+            }.takeIf { it >= 0 } ?: run {
+                // Fallback to word matching only if exact match fails
+                val readingWords = state.currentlyReadingSegment.lowercase().split(Regex("\\s+"))
+                textSegments.indexOfFirst { segment ->
+                    val segmentWords = segment.lowercase().split(Regex("\\s+"))
+                    readingWords.count { word ->
+                        segmentWords.any { it.contains(word) || word.contains(it) }
+                    } >= maxOf(1, readingWords.size / 2)
+                }
+            }
+        }
+    }
     
     // PDF picker launcher
     val pdfPickerLauncher = rememberLauncherForActivityResult(
@@ -332,35 +360,125 @@ fun PdfToVoiceScreen(
                 }
             }
             
-            // Error Message
+            // Error Message with better styling and actions
             state.errorMessage?.let { error ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
+                        containerColor = if (error.contains("failed", ignoreCase = true) || 
+                                              error.contains("error", ignoreCase = true)) {
+                            MaterialTheme.colorScheme.errorContainer
+                        } else if (error.contains("complete", ignoreCase = true) ||
+                                   error.contains("success", ignoreCase = true)) {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.secondaryContainer
+                        }
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(
-                            Icons.Default.Error,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = error,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            fontSize = 14.sp
-                        )
+                        Row(
+                            verticalAlignment = Alignment.Top,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (error.contains("failed", ignoreCase = true) || 
+                                                 error.contains("error", ignoreCase = true)) {
+                                    Icons.Default.Error
+                                } else if (error.contains("complete", ignoreCase = true) ||
+                                          error.contains("success", ignoreCase = true)) {
+                                    Icons.Default.CheckCircle
+                                } else {
+                                    Icons.Default.Info
+                                },
+                                contentDescription = null,
+                                tint = if (error.contains("failed", ignoreCase = true) || 
+                                          error.contains("error", ignoreCase = true)) {
+                                    MaterialTheme.colorScheme.error
+                                } else if (error.contains("complete", ignoreCase = true) ||
+                                          error.contains("success", ignoreCase = true)) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.secondary
+                                },
+                                modifier = Modifier.size(24.dp)
+                            )
+                            
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = error,
+                                    color = if (error.contains("failed", ignoreCase = true) || 
+                                              error.contains("error", ignoreCase = true)) {
+                                        MaterialTheme.colorScheme.onErrorContainer
+                                    } else if (error.contains("complete", ignoreCase = true) ||
+                                              error.contains("success", ignoreCase = true)) {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onSecondaryContainer
+                                    },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    lineHeight = 20.sp
+                                )
+                                
+                                // Add action buttons for certain error types
+                                if (error.contains("failed", ignoreCase = true) && 
+                                    state.selectedPdfFile != null) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        OutlinedButton(
+                                            onClick = { viewModel.retryExtraction() },
+                                            modifier = Modifier.height(36.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Refresh,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Retry")
+                                        }
+                                        
+                                        OutlinedButton(
+                                            onClick = { viewModel.showMethodInfo() },
+                                            modifier = Modifier.height(36.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Info,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Help")
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // Dismiss button
+                            IconButton(
+                                onClick = { viewModel.clearError() },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Dismiss",
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }
             
-            // Synchronized Lyrics Display - Spotify Style
+            // Text Display Area - Either content or debug info
             if (state.extractedText.isNotBlank()) {
                 SynchronizedLyricsDisplay(
                     text = state.extractedText,
@@ -369,78 +487,164 @@ fun PdfToVoiceScreen(
                     modifier = Modifier.weight(1f)
                 )
             } else {
-                // Debug information when no text is available
+                // Enhanced debug information panel
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
                     shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (state.errorMessage?.contains("failed", ignoreCase = true) == true) {
+                            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant
+                        }
+                    ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(24.dp),
+                            .padding(24.dp)
+                            .verticalScroll(rememberScrollState()),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
+                        // Status icon with animation
                         Icon(
-                            Icons.Default.TextFields,
+                            imageVector = when {
+                                state.isLoading || state.isAnalyzing -> Icons.Default.Sync
+                                state.errorMessage?.contains("failed", ignoreCase = true) == true -> Icons.Default.Error
+                                state.selectedPdfFile != null -> Icons.Default.Description
+                                else -> Icons.Default.TextFields
+                            },
                             contentDescription = null,
                             modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.outline
+                            tint = when {
+                                state.isLoading || state.isAnalyzing -> MaterialTheme.colorScheme.primary
+                                state.errorMessage?.contains("failed", ignoreCase = true) == true -> MaterialTheme.colorScheme.error
+                                else -> MaterialTheme.colorScheme.outline
+                            }
                         )
                         
                         Spacer(modifier = Modifier.height(16.dp))
                         
+                        // Main status message
                         Text(
-                            text = "No Text Extracted Yet",
+                            text = when {
+                                state.isLoading -> "Processing PDF..."
+                                state.isAnalyzing -> "Analyzing Document..."
+                                state.errorMessage?.contains("failed", ignoreCase = true) == true -> "Extraction Failed"
+                                state.selectedPdfFile != null -> "Ready to Extract"
+                                else -> "No PDF Selected"
+                            },
                             style = MaterialTheme.typography.headlineSmall,
                             color = MaterialTheme.colorScheme.onSurface,
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
+                            fontWeight = FontWeight.Medium
                         )
                         
                         Spacer(modifier = Modifier.height(8.dp))
                         
+                        // Detailed status
                         Text(
                             text = when {
-                                state.selectedPdfFile == null -> "Please select a PDF file to get started"
-                                state.isLoading -> "Extracting text from PDF..."
-                                state.isAnalyzing -> "Analyzing PDF file..."
-                                state.errorMessage != null -> "Text extraction may have failed - check status above"
-                                else -> "Ready to extract text from selected PDF"
+                                state.isLoading -> "Extracting text using the best available method..."
+                                state.isAnalyzing -> "Analyzing PDF structure and determining optimal extraction method..."
+                                state.selectedPdfFile == null -> "Select a PDF file to get started with text extraction and voice reading"
+                                state.errorMessage?.contains("failed", ignoreCase = true) == true -> "Text extraction encountered issues. Try a different PDF or check the debug information below."
+                                else -> "PDF is ready for text extraction. Processing will begin automatically."
                             },
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
+                            lineHeight = 24.sp
                         )
                         
-                        // Debug info
+                        // Action suggestions
+                        if (state.selectedPdfFile == null) {
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Button(
+                                onClick = { pdfPickerLauncher.launch("application/pdf") },
+                                modifier = Modifier.fillMaxWidth(0.6f)
+                            ) {
+                                Icon(Icons.Default.FileOpen, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Select PDF File")
+                            }
+                        }
+                        
+                        // Debug information (collapsible)
                         if (state.selectedPdfFile != null) {
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(24.dp))
                             
-                            Text(
-                                text = "Debug Info:",
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                            var showDebugInfo by rememberSaveable { mutableStateOf(false) }
                             
-                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedButton(
+                                onClick = { showDebugInfo = !showDebugInfo },
+                                modifier = Modifier.fillMaxWidth(0.8f)
+                            ) {
+                                Icon(
+                                    if (showDebugInfo) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                    contentDescription = null
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(if (showDebugInfo) "Hide Debug Info" else "Show Debug Info")
+                            }
                             
-                            Text(
-                                text = buildString {
-                                    append("• Selected File: ${state.selectedPdfFile?.name}\n")
-                                    append("• Text Length: ${state.extractedText.length} chars\n")
-                                    append("• Is Loading: ${state.isLoading}\n")
-                                    append("• Is Analyzing: ${state.isAnalyzing}\n")
-                                    append("• Extraction Method: ${state.extractionMethod?.name ?: "None"}\n")
-                                    append("• TTS Initialized: ${state.isTtsInitialized}\n")
-                                    append("• Current Segment: '${state.currentlyReadingSegment}'\n")
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-                            )
+                            if (showDebugInfo) {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surface
+                                    ),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(16.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(
+                                            text = "Debug Information",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        
+                                        Divider(
+                                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                                            modifier = Modifier.padding(vertical = 8.dp)
+                                        )
+                                        
+                                        DebugInfoRow("File", state.selectedPdfFile?.name ?: "None")
+                                        DebugInfoRow("Size", state.selectedPdfFile?.formattedSize ?: "Unknown")
+                                        DebugInfoRow("Text Length", "${state.extractedText.length} characters")
+                                        DebugInfoRow("Loading", state.isLoading.toString())
+                                        DebugInfoRow("Analyzing", state.isAnalyzing.toString())
+                                        DebugInfoRow("Method", state.extractionMethod?.name?.replace("_", " ") ?: "None")
+                                        DebugInfoRow("TTS Ready", state.isTtsInitialized.toString())
+                                        DebugInfoRow("Current Segment", if (state.currentlyReadingSegment.isNotBlank()) {
+                                            "'${state.currentlyReadingSegment.take(50)}${if (state.currentlyReadingSegment.length > 50) "..." else ""}'"
+                                        } else "None")
+                                        
+                                        state.selectedPdfFile?.analysisInfo?.let { info ->
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Text(
+                                                text = "PDF Analysis",
+                                                style = MaterialTheme.typography.titleSmall,
+                                                color = MaterialTheme.colorScheme.secondary
+                                            )
+                                            DebugInfoRow("Pages", info.pageCount.toString())
+                                            DebugInfoRow("Has Text", info.hasSelectableText.toString())
+                                            DebugInfoRow("Has Images", info.isImagePdf.toString())
+                                            DebugInfoRow("Protected", info.isPasswordProtected.toString())
+                                            DebugInfoRow("Methods Available", info.supportedMethods.size.toString())
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -448,46 +652,7 @@ fun PdfToVoiceScreen(
         }
         
         // Enhanced Reading Progress Bar above Music Player Controls
-        if (state.extractedText.isNotBlank()) {
-            // Calculate progress
-            val textLines = remember(state.extractedText) {
-                if (state.extractedText.isBlank()) emptyList()
-                else state.extractedText.split(Regex("(?<=[.!?])\\s+|\\n"))
-                    .filter { it.isNotBlank() }
-                    .map { it.trim() }
-            }
-            
-            val currentLineIndex = remember(state.currentlyReadingSegment, textLines) {
-                if (state.currentlyReadingSegment.isBlank() || textLines.isEmpty()) -1
-                else {
-                    // Improved matching logic
-                    var foundIndex = textLines.indexOfFirst { line ->
-                        line.contains(state.currentlyReadingSegment, ignoreCase = true)
-                    }
-                    
-                    if (foundIndex == -1) {
-                        foundIndex = textLines.indexOfFirst { line ->
-                            state.currentlyReadingSegment.contains(line, ignoreCase = true)
-                        }
-                    }
-                    
-                    if (foundIndex == -1 && state.currentlyReadingSegment.isNotBlank()) {
-                        val segmentWords = state.currentlyReadingSegment.lowercase().split(Regex("\\s+"))
-                        foundIndex = textLines.indexOfFirst { line ->
-                            val lineWords = line.lowercase().split(Regex("\\s+"))
-                            val matchCount = segmentWords.count { segmentWord ->
-                                lineWords.any { lineWord ->
-                                    segmentWord.contains(lineWord) || lineWord.contains(segmentWord)
-                                }
-                            }
-                            matchCount >= maxOf(1, segmentWords.size / 2)
-                        }
-                    }
-                    
-                    foundIndex
-                }
-            }
-            
+        if (state.extractedText.isNotBlank() && textSegments.isNotEmpty()) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -531,7 +696,7 @@ fun PdfToVoiceScreen(
                                 )
                             }
                             
-                            // Large, prominent progress indicator
+                            // Progress indicator
                             Card(
                                 colors = CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.primary
@@ -539,10 +704,10 @@ fun PdfToVoiceScreen(
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Text(
-                                    text = if (currentLineIndex >= 0) {
-                                        "${currentLineIndex + 1}/${textLines.size}"
+                                    text = if (currentSegmentIndex >= 0) {
+                                        "${currentSegmentIndex + 1}/${textSegments.size}"
                                     } else {
-                                        "0/${textLines.size}"
+                                        "0/${textSegments.size}"
                                     },
                                     style = MaterialTheme.typography.headlineSmall,
                                     color = MaterialTheme.colorScheme.onPrimary,
@@ -553,47 +718,45 @@ fun PdfToVoiceScreen(
                         }
                         
                         // Progress bar
-                        if (textLines.isNotEmpty()) {
-                            val progress = if (currentLineIndex >= 0) {
-                                (currentLineIndex + 1).toFloat() / textLines.size.toFloat()
-                            } else {
-                                0f
-                            }
+                        val progress = if (currentSegmentIndex >= 0) {
+                            (currentSegmentIndex + 1).toFloat() / textSegments.size.toFloat()
+                        } else {
+                            0f
+                        }
+                        
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            LinearProgressIndicator(
+                                progress = progress,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(12.dp)
+                                    .clip(RoundedCornerShape(6.dp)),
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                            )
                             
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                LinearProgressIndicator(
-                                    progress = progress,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(12.dp)
-                                        .clip(RoundedCornerShape(6.dp)),
-                                    color = MaterialTheme.colorScheme.primary,
-                                    trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                                Text(
+                                    text = "Start",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                                 )
-                                
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(
-                                        text = "Start",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                                    )
-                                    Text(
-                                        text = "${(progress * 100).toInt()}% Complete",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Medium,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                    Text(
-                                        text = "End",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                                    )
-                                }
+                                Text(
+                                    text = "${(progress * 100).toInt()}% Complete",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = "End",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                )
                             }
                         }
                     }
@@ -626,5 +789,34 @@ fun PdfToVoiceScreen(
                 onPitchChange = { viewModel.setPitch(it) }
             )
         }
+    }
+}
+
+@Composable
+private fun DebugInfoRow(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+            modifier = Modifier.weight(2f),
+            textAlign = TextAlign.End
+        )
     }
 }
