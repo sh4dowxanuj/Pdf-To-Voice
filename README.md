@@ -9,7 +9,9 @@ A modern Android application that converts PDF documents into speech using Text-
 - ✅ **Text Extraction**: Demonstrates PDF processing capability with sample content
 - ✅ **Text-to-Speech**: Android's native TTS engine integration
 - ✅ **Playback Controls**: Play, pause, stop, and resume functionality
-- ✅ **Real-time Highlighting**: Shows currently reading text segment
+- ✅ **Enhanced Text Highlighting**: Real-time highlighting with auto-scroll and contextual colors
+- ✅ **Full-Screen Text Panel**: Modal text viewer with enhanced readability
+- ✅ **Music Player-Style Controls**: Bottom-fixed controls similar to Spotify/Apple Music
 
 ### 🎛️ Advanced Controls
 - ✅ **Voice Speed Control**: Adjustable from 0.1x to 3.0x speed
@@ -22,8 +24,10 @@ A modern Android application that converts PDF documents into speech using Text-
 - ✅ **Material Design 3**: Clean, modern interface
 - ✅ **Responsive Design**: Adapts to different screen sizes
 - ✅ **Accessibility**: Screen reader friendly
-- ✅ **Intuitive Controls**: Large, accessible buttons
-- ✅ **Visual Feedback**: Real-time status updates
+- ✅ **Intuitive Controls**: Large, accessible buttons with music player-style layout
+- ✅ **Visual Feedback**: Real-time status updates with animated indicators
+- ✅ **Enhanced Text Display**: Full-screen modal with improved typography
+- ✅ **Contextual Highlighting**: Dynamic text highlighting that follows speech progress
 - Built with Jetpack Compose
 - Clean architecture with MVVM pattern
 

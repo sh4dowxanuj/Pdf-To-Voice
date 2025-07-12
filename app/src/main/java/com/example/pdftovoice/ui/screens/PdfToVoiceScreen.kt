@@ -29,6 +29,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.pdftovoice.R
 import com.example.pdftovoice.tts.Language
 import com.example.pdftovoice.viewmodel.PdfToVoiceViewModel
+import com.example.pdftovoice.ui.components.MusicPlayerControls
+import com.example.pdftovoice.ui.components.TextHighlightingPanel
+import com.example.pdftovoice.ui.components.EnhancedTextDisplay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,8 +49,8 @@ fun PdfToVoiceScreen(
     val availableLanguages by viewModel.availableLanguages.collectAsState()
     
     // Use rememberSaveable to persist UI state across configuration changes
-    var showControls by rememberSaveable { mutableStateOf(false) }
     var showLanguageSelector by rememberSaveable { mutableStateOf(false) }
+    var showTextPanel by rememberSaveable { mutableStateOf(false) }
     
     // PDF picker launcher
     val pdfPickerLauncher = rememberLauncherForActivityResult(
@@ -65,295 +68,103 @@ fun PdfToVoiceScreen(
         }
     }
     
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    // Create a layout with bottom music player controls
+    Box(
+        modifier = Modifier.fillMaxSize()
     ) {
-        // Top Bar with Logout
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        // Main content
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+                .padding(bottom = 200.dp), // Space for bottom player
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = stringResource(R.string.pdf_to_voice_reader),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-            
+            // Top Bar with Logout
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Language Selector
-                IconButton(
-                    onClick = { showLanguageSelector = true }
-                ) {
-                    Icon(
-                        Icons.Default.Language,
-                        contentDescription = stringResource(R.string.select_language)
-                    )
-                }
-                
-                // Logout Button
-                IconButton(
-                    onClick = onLogout,
-                    colors = IconButtonDefaults.iconButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Icon(
-                        Icons.Default.ExitToApp,
-                        contentDescription = stringResource(R.string.logout),
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
-        }
-        
-        // Language Selection Dialog
-        if (showLanguageSelector) {
-            AlertDialog(
-                onDismissRequest = { showLanguageSelector = false },
-                title = { Text(stringResource(R.string.select_language)) },
-                text = {
-                    LazyColumn {
-                        items(availableLanguages) { language ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        viewModel.setLanguage(language)
-                                        showLanguageSelector = false
-                                    }
-                                    .padding(vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                RadioButton(
-                                    selected = language.code == currentLanguage.code,
-                                    onClick = {
-                                        viewModel.setLanguage(language)
-                                        showLanguageSelector = false
-                                    }
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = language.name,
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                        }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = { showLanguageSelector = false }) {
-                        Text("OK")
-                    }
-                }
-            )
-        }
-        
-        // File Selection Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
                 Text(
-                    text = stringResource(R.string.select_pdf_file),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    text = stringResource(R.string.pdf_to_voice_reader),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
                 )
                 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Button(
-                        onClick = { pdfPickerLauncher.launch("application/pdf") },
-                        modifier = Modifier.weight(1f),
-                        enabled = !state.isLoading
-                    ) {
-                        Icon(Icons.Default.FileOpen, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.choose_file))
-                    }
-                    
-                    if (state.selectedPdfFile != null) {
-                        OutlinedButton(
-                            onClick = { viewModel.clearPdf() },
-                            enabled = !state.isLoading
-                        ) {
-                            Icon(Icons.Default.Clear, contentDescription = null)
-                        }
-                    }
-                }
-                
-                if (state.selectedPdfFile != null) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            val selectedFile = state.selectedPdfFile
-                            Text(
-                                text = "Selected: ${selectedFile?.name ?: "Unknown"}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "Size: ${selectedFile?.formattedSize ?: "Unknown"}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            
-                            // Show analysis info if available
-                            selectedFile?.analysisInfo?.let { analysisInfo ->
-                                Text(
-                                    text = "Type: ${selectedFile.mimeType ?: "Unknown"}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = "Pages: ${analysisInfo.pageCount}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    if (analysisInfo.hasSelectableText) {
-                                        Text(
-                                            text = "📄 Text",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                    if (analysisInfo.isImagePdf) {
-                                        Text(
-                                            text = "🖼️ Images",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                    if (analysisInfo.isPasswordProtected) {
-                                        Text(
-                                            text = "🔒 Protected",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.error
-                                        )
-                                    }
-                                }
-                                
-                                Text(
-                                    text = "Methods: ${analysisInfo.supportedMethods.size} available",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            
-                            // Show extraction method if available
-                            state.extractionMethod?.let { method ->
-                                Text(
-                                    text = "Extracted using: ${method.name.replace("_", " ")}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Loading Indicators
-        if (state.isLoading || state.isAnalyzing) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        CircularProgressIndicator()
-                        Text(
-                            text = when {
-                                state.isAnalyzing -> "Analyzing PDF structure..."
-                                state.processingStatus != null -> state.processingStatus!!
-                                state.isLoading -> "Extracting text from PDF..."
-                                else -> "Processing..."
-                            }
-                        )
-                        
-                        // Show detailed status if available
-                        state.processingStatus?.let { status ->
-                            if (status != "Processing...") {
-                                Text(
-                                    text = status,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Error Message
-        state.errorMessage?.let { error ->
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
-                ),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        Icons.Default.Error,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = error,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        fontSize = 14.sp
-                    )
+                    // Language Selector
+                    IconButton(
+                        onClick = { showLanguageSelector = true }
+                    ) {
+                        Icon(
+                            Icons.Default.Language,
+                            contentDescription = stringResource(R.string.select_language)
+                        )
+                    }
+                    
+                    // Logout Button
+                    IconButton(
+                        onClick = onLogout,
+                        colors = IconButtonDefaults.iconButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.ExitToApp,
+                            contentDescription = stringResource(R.string.logout),
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             }
-        }
-        
-        // Text Content and Controls
-        if (state.extractedText.isNotBlank()) {
-            // Playback Controls Card
+            
+            // Language Selection Dialog
+            if (showLanguageSelector) {
+                AlertDialog(
+                    onDismissRequest = { showLanguageSelector = false },
+                    title = { Text(stringResource(R.string.select_language)) },
+                    text = {
+                        LazyColumn {
+                            items(availableLanguages) { language ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            viewModel.setLanguage(language)
+                                            showLanguageSelector = false
+                                        }
+                                        .padding(vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    RadioButton(
+                                        selected = language.code == currentLanguage.code,
+                                        onClick = {
+                                            viewModel.setLanguage(language)
+                                            showLanguageSelector = false
+                                        }
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = language.name,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showLanguageSelector = false }) {
+                            Text("OK")
+                        }
+                    }
+                )
+            }
+            
+            // File Selection Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -361,200 +172,239 @@ fun PdfToVoiceScreen(
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Text(
-                        text = "Playback Controls",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    
-                    // Main Control Buttons
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
-                    ) {
-                        FloatingActionButton(
-                            onClick = {
-                                when {
-                                    isPlaying -> viewModel.pauseReading()
-                                    isPaused -> viewModel.resumeReading()
-                                    else -> viewModel.playText()
-                                }
-                            },
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(56.dp)
-                        ) {
-                            Icon(
-                                when {
-                                    isPlaying -> Icons.Default.Pause
-                                    else -> Icons.Default.PlayArrow
-                                },
-                                contentDescription = when {
-                                    isPlaying -> "Pause"
-                                    isPaused -> "Resume"
-                                    else -> "Play"
-                                },
-                                modifier = Modifier.size(32.dp)
-                            )
-                        }
-                        
-                        FloatingActionButton(
-                            onClick = { viewModel.stopReading() },
-                            containerColor = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Stop,
-                                contentDescription = "Stop",
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                        
-                        FloatingActionButton(
-                            onClick = { showControls = !showControls },
-                            containerColor = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Settings,
-                                contentDescription = "Settings",
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    }
-                    
-                    // Additional Control Buttons
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
-                    ) {
-                        // Retry button for failed extractions
-                        if (state.errorMessage?.contains("Failed", ignoreCase = true) == true) {
-                            OutlinedButton(
-                                onClick = { viewModel.retryExtraction() }
-                            ) {
-                                Icon(Icons.Default.Refresh, contentDescription = "Retry")
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Retry")
-                            }
-                        }
-                        
-                        // Show extraction method info
-                        if (state.extractionMethod != null) {
-                            OutlinedButton(
-                                onClick = { viewModel.showMethodInfo() }
-                            ) {
-                                Icon(Icons.Default.Info, contentDescription = "Method Info")
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Method")
-                            }
-                        }
-                    }
-                    
-                    // Advanced Controls (Show/Hide)
-                    if (showControls) {
-                        Divider()
-                        
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            // Speed Control
-                            Column {
-                                Text(
-                                    text = "Speed: ${String.format("%.1f", speed)}x",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Slider(
-                                    value = speed,
-                                    onValueChange = { viewModel.setSpeed(it) },
-                                    valueRange = 0.1f..3.0f,
-                                    steps = 29,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                            
-                            // Pitch Control
-                            Column {
-                                Text(
-                                    text = "Pitch: ${String.format("%.1f", pitch)}x",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Slider(
-                                    value = pitch,
-                                    onValueChange = { viewModel.setPitch(it) },
-                                    valueRange = 0.1f..2.0f,
-                                    steps = 19,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // Currently Reading Section
-            if (state.currentlyReadingSegment.isNotBlank()) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = "Currently Reading:",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Text(
-                            text = state.currentlyReadingSegment,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
-            
-            // Extracted Text Card
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Extracted Text",
+                        text = stringResource(R.string.select_pdf_file),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
                     
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { pdfPickerLauncher.launch("application/pdf") },
+                            modifier = Modifier.weight(1f),
+                            enabled = !state.isLoading
+                        ) {
+                            Icon(Icons.Default.FileOpen, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(stringResource(R.string.choose_file))
+                        }
+                        
+                        if (state.selectedPdfFile != null) {
+                            OutlinedButton(
+                                onClick = { viewModel.clearPdf() },
+                                enabled = !state.isLoading
+                            ) {
+                                Icon(Icons.Default.Clear, contentDescription = null)
+                            }
+                        }
+                    }
+                    
+                    if (state.selectedPdfFile != null) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                val selectedFile = state.selectedPdfFile
+                                Text(
+                                    text = "Selected: ${selectedFile?.name ?: "Unknown"}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = "Size: ${selectedFile?.formattedSize ?: "Unknown"}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                
+                                // Show analysis info if available
+                                selectedFile?.analysisInfo?.let { analysisInfo ->
+                                    Text(
+                                        text = "Type: ${selectedFile.mimeType ?: "Unknown"}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = "Pages: ${analysisInfo.pageCount}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        if (analysisInfo.hasSelectableText) {
+                                            Text(
+                                                text = "📄 Text",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                        if (analysisInfo.isImagePdf) {
+                                            Text(
+                                                text = "🖼️ Images",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                        if (analysisInfo.isPasswordProtected) {
+                                            Text(
+                                                text = "🔒 Protected",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.error
+                                            )
+                                        }
+                                    }
+                                    
+                                    Text(
+                                        text = "Methods: ${analysisInfo.supportedMethods.size} available",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                
+                                // Show extraction method if available
+                                state.extractionMethod?.let { method ->
+                                    Text(
+                                        text = "Extracted using: ${method.name.replace("_", " ")}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Loading Indicators
+            if (state.isLoading || state.isAnalyzing) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
                     Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center
                     ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            CircularProgressIndicator()
+                            Text(
+                                text = when {
+                                    state.isAnalyzing -> "Analyzing PDF structure..."
+                                    state.processingStatus != null -> state.processingStatus!!
+                                    state.isLoading -> "Extracting text from PDF..."
+                                    else -> "Processing..."
+                                }
+                            )
+                            
+                            // Show detailed status if available
+                            state.processingStatus?.let { status ->
+                                if (status != "Processing...") {
+                                    Text(
+                                        text = status,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Error Message
+            state.errorMessage?.let { error ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Error,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = state.extractedText,
-                            style = MaterialTheme.typography.bodyMedium,
-                            lineHeight = 20.sp
+                            text = error,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            fontSize = 14.sp
                         )
                     }
                 }
             }
+            
+            // Enhanced Text Display
+            if (state.extractedText.isNotBlank()) {
+                EnhancedTextDisplay(
+                    text = state.extractedText,
+                    currentlyReadingSegment = state.currentlyReadingSegment,
+                    isPlaying = isPlaying,
+                    onOpenFullText = { showTextPanel = true },
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
+        
+        // Bottom Music Player Controls
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+        ) {
+            MusicPlayerControls(
+                isPlaying = isPlaying,
+                isPaused = isPaused,
+                currentlyReadingSegment = state.currentlyReadingSegment,
+                fileName = state.selectedPdfFile?.name,
+                speed = speed,
+                pitch = pitch,
+                onPlayPause = {
+                    when {
+                        isPlaying -> viewModel.pauseReading()
+                        isPaused -> viewModel.resumeReading()
+                        else -> viewModel.playText()
+                    }
+                },
+                onStop = { viewModel.stopReading() },
+                onSpeedChange = { viewModel.setSpeed(it) },
+                onPitchChange = { viewModel.setPitch(it) },
+                onOpenTextPanel = { showTextPanel = true }
+            )
+        }
+        
+        // Full Text Panel Dialog
+        TextHighlightingPanel(
+            text = state.extractedText,
+            currentlyReadingSegment = state.currentlyReadingSegment,
+            isVisible = showTextPanel,
+            onDismiss = { showTextPanel = false }
+        )
     }
 }
