@@ -64,13 +64,10 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
     // Combined state for UI with currently reading segment
     val combinedState = combine(
         _state,
-        isPlaying,
-        isPaused
-    ) { state, playing, paused ->
+        ttsManager.currentSegment
+    ) { state, currentSegment ->
         state.copy(
-            currentlyReadingSegment = if (playing || paused) {
-                ttsManager.getCurrentSegment() ?: ""
-            } else ""
+            currentlyReadingSegment = currentSegment
         )
     }
     

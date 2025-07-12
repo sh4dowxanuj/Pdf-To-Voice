@@ -35,6 +35,9 @@ class TtsManager(private val context: Context) {
     private val _isPaused = MutableStateFlow(false)
     val isPaused: StateFlow<Boolean> = _isPaused.asStateFlow()
     
+    private val _currentSegment = MutableStateFlow("")
+    val currentSegment: StateFlow<String> = _currentSegment.asStateFlow()
+    
     private val _speed = MutableStateFlow(1.0f)
     val speed: StateFlow<Float> = _speed.asStateFlow()
     
@@ -119,6 +122,7 @@ class TtsManager(private val context: Context) {
                 } else {
                     _isPlaying.value = false
                     _currentPosition.value = 0
+                    _currentSegment.value = ""
                     currentSegmentIndex = 0
                 }
             }
@@ -126,6 +130,7 @@ class TtsManager(private val context: Context) {
             @Deprecated("Deprecated in Java")
             override fun onError(utteranceId: String?) {
                 _isPlaying.value = false
+                _currentSegment.value = ""
             }
         })
     }
@@ -203,6 +208,7 @@ class TtsManager(private val context: Context) {
         textSegments = splitTextIntoSegments(text)
         currentSegmentIndex = 0
         _currentPosition.value = 0
+        _currentSegment.value = ""
         
         textToSpeech?.setSpeechRate(_speed.value)
         textToSpeech?.setPitch(_pitch.value)
@@ -213,6 +219,8 @@ class TtsManager(private val context: Context) {
     private fun speakCurrentSegment() {
         if (currentSegmentIndex < textSegments.size) {
             val segment = textSegments[currentSegmentIndex]
+            _currentSegment.value = segment
+            android.util.Log.d("TtsManager", "Speaking segment $currentSegmentIndex: '$segment'")
             textToSpeech?.speak(segment, TextToSpeech.QUEUE_FLUSH, null, "utterance_$currentSegmentIndex")
         }
     }
@@ -273,6 +281,7 @@ class TtsManager(private val context: Context) {
         _isPlaying.value = false
         _isPaused.value = false
         _currentPosition.value = 0
+        _currentSegment.value = ""
         currentSegmentIndex = 0
     }
     

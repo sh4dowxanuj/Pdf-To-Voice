@@ -30,6 +30,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.pdftovoice.R
 import com.example.pdftovoice.tts.Language
 import com.example.pdftovoice.viewmodel.PdfToVoiceViewModel
+import com.example.pdftovoice.viewmodel.PdfToVoiceState
 import com.example.pdftovoice.ui.components.MusicPlayerControls
 import com.example.pdftovoice.ui.components.SynchronizedLyricsDisplay
 
@@ -39,8 +40,8 @@ fun PdfToVoiceScreen(
     viewModel: PdfToVoiceViewModel = viewModel(),
     onLogout: () -> Unit = {}
 ) {
-    // Optimize state collection with keys to prevent unnecessary recomposition
-    val state by viewModel.state.collectAsState()
+    // Use combined state to get the currently reading segment properly
+    val state by viewModel.combinedState.collectAsState(initial = PdfToVoiceState())
     val isPlaying by viewModel.isPlaying.collectAsState()
     val isPaused by viewModel.isPaused.collectAsState()
     val speed by viewModel.speed.collectAsState()
@@ -367,6 +368,82 @@ fun PdfToVoiceScreen(
                     isPlaying = isPlaying,
                     modifier = Modifier.weight(1f)
                 )
+            } else {
+                // Debug information when no text is available
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            Icons.Default.TextFields,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.outline
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Text(
+                            text = "No Text Extracted Yet",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Text(
+                            text = when {
+                                state.selectedPdfFile == null -> "Please select a PDF file to get started"
+                                state.isLoading -> "Extracting text from PDF..."
+                                state.isAnalyzing -> "Analyzing PDF file..."
+                                state.errorMessage != null -> "Text extraction may have failed - check status above"
+                                else -> "Ready to extract text from selected PDF"
+                            },
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                        
+                        // Debug info
+                        if (state.selectedPdfFile != null) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            Text(
+                                text = "Debug Info:",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            Text(
+                                text = buildString {
+                                    append("• Selected File: ${state.selectedPdfFile?.name}\n")
+                                    append("• Text Length: ${state.extractedText.length} chars\n")
+                                    append("• Is Loading: ${state.isLoading}\n")
+                                    append("• Is Analyzing: ${state.isAnalyzing}\n")
+                                    append("• Extraction Method: ${state.extractionMethod?.name ?: "None"}\n")
+                                    append("• TTS Initialized: ${state.isTtsInitialized}\n")
+                                    append("• Current Segment: '${state.currentlyReadingSegment}'\n")
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                            )
+                        }
+                    }
+                }
             }
         }
         
