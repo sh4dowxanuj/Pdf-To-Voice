@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pdftovoice.pdf.PdfProcessor
 import com.example.pdftovoice.tts.TtsManager
+import com.example.pdftovoice.tts.Language
 import com.example.pdftovoice.utils.FileUtils
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,6 +47,10 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
     val currentPosition = ttsManager.currentPosition
     val speed = ttsManager.speed
     val pitch = ttsManager.pitch
+    
+    // Language state from TTS Manager
+    val currentLanguage: StateFlow<Language> = ttsManager.currentLanguage
+    val availableLanguages: StateFlow<List<Language>> = ttsManager.availableLanguages
     
     // Combined state for UI with currently reading segment
     val combinedState = combine(
@@ -244,6 +249,10 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
     
     fun setPitch(pitch: Float) {
         ttsManager.setPitch(pitch)
+    }
+    
+    fun setLanguage(language: Language) {
+        ttsManager.setLanguage(language)
     }
     
     fun seekTo(position: Int) {

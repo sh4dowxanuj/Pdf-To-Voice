@@ -3,7 +3,10 @@ package com.example.pdftovoice.ui.screens
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -16,18 +19,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.pdftovoice.R
+import com.example.pdftovoice.tts.Language
 import com.example.pdftovoice.viewmodel.PdfToVoiceViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PdfToVoiceScreen(
-    viewModel: PdfToVoiceViewModel = viewModel()
+    viewModel: PdfToVoiceViewModel = viewModel(),
+    onLogout: () -> Unit = {}
 ) {
     // Optimize state collection with keys to prevent unnecessary recomposition
     val state by viewModel.state.collectAsState()
@@ -35,9 +42,12 @@ fun PdfToVoiceScreen(
     val isPaused by viewModel.isPaused.collectAsState()
     val speed by viewModel.speed.collectAsState()
     val pitch by viewModel.pitch.collectAsState()
+    val currentLanguage by viewModel.currentLanguage.collectAsState()
+    val availableLanguages by viewModel.availableLanguages.collectAsState()
     
     // Use rememberSaveable to persist UI state across configuration changes
     var showControls by rememberSaveable { mutableStateOf(false) }
+    var showLanguageSelector by rememberSaveable { mutableStateOf(false) }
     
     // PDF picker launcher
     val pdfPickerLauncher = rememberLauncherForActivityResult(
@@ -61,14 +71,89 @@ fun PdfToVoiceScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Header
-        Text(
-            text = "PDF to Voice Reader",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
+        // Top Bar with Logout
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.pdf_to_voice_reader),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+            
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Language Selector
+                IconButton(
+                    onClick = { showLanguageSelector = true }
+                ) {
+                    Icon(
+                        Icons.Default.Language,
+                        contentDescription = stringResource(R.string.select_language)
+                    )
+                }
+                
+                // Logout Button
+                IconButton(
+                    onClick = onLogout,
+                    colors = IconButtonDefaults.iconButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(
+                        Icons.Default.ExitToApp,
+                        contentDescription = stringResource(R.string.logout),
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        }
+        
+        // Language Selection Dialog
+        if (showLanguageSelector) {
+            AlertDialog(
+                onDismissRequest = { showLanguageSelector = false },
+                title = { Text(stringResource(R.string.select_language)) },
+                text = {
+                    LazyColumn {
+                        items(availableLanguages) { language ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        viewModel.setLanguage(language)
+                                        showLanguageSelector = false
+                                    }
+                                    .padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = language.code == currentLanguage.code,
+                                    onClick = {
+                                        viewModel.setLanguage(language)
+                                        showLanguageSelector = false
+                                    }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = language.name,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showLanguageSelector = false }) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
         
         // File Selection Card
         Card(
@@ -81,7 +166,7 @@ fun PdfToVoiceScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "Select PDF File",
+                    text = stringResource(R.string.select_pdf_file),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -97,7 +182,7 @@ fun PdfToVoiceScreen(
                     ) {
                         Icon(Icons.Default.FileOpen, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Choose PDF")
+                        Text(stringResource(R.string.choose_file))
                     }
                     
                     if (state.selectedPdfFile != null) {

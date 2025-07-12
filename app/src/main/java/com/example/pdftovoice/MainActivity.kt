@@ -12,7 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
-import com.example.pdftovoice.ui.screens.PdfToVoiceScreen
+import com.example.pdftovoice.navigation.AuthNavGraph
 import com.example.pdftovoice.ui.theme.PdfToVoiceTheme
 
 class MainActivity : ComponentActivity() {
@@ -35,7 +35,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    PdfToVoiceScreen()
+                    AuthNavGraph()
                 }
             }
         }

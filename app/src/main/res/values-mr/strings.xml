@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PDF ते आवाज</string>
+    
+    <!-- Main Screen -->
+    <string name="pdf_to_voice_reader">PDF ते आवाज वाचक</string>
+    <string name="select_pdf_file">PDF फाइल निवडा</string>
+    <string name="choose_file">फाइल निवडा</string>
+    <string name="use_demo_content">डेमो सामग्री वापरा</string>
+    <string name="logout">लॉगआउट</string>
+    
+    <!-- PDF Processing -->
+    <string name="extracted_text">काढलेला मजकूर</string>
+    <string name="no_text_extracted">PDF मधून कोणताही मजकूर काढता आला नाही</string>
+    <string name="processing_pdf">PDF प्रक्रिया करत आहे...</string>
+    <string name="pdf_processed_successfully">PDF यशस्वीपणे प्रक्रिया झाली</string>
+    
+    <!-- TTS Controls -->
+    <string name="playback_controls">प्लेबॅक नियंत्रण</string>
+    <string name="play">प्ले करा</string>
+    <string name="pause">थांबवा</string>
+    <string name="stop">बंद करा</string>
+    <string name="resume">पुन्हा सुरू करा</string>
+    <string name="speed">गती</string>
+    <string name="pitch">स्वराची उंची</string>
+    <string name="language">भाषा</string>
+    <string name="select_language">भाषा निवडा</string>
+    
+    <!-- Authentication -->
+    <string name="welcome_back">परत स्वागत</string>
+    <string name="sign_in_to_continue">पुढे जाण्यासाठी साइन इन करा</string>
+    <string name="email">ईमेल</string>
+    <string name="password">पासवर्ड</string>
+    <string name="sign_in">साइन इन</string>
+    <string name="sign_up">साइन अप</string>
+    <string name="create_account">खाते तयार करा</string>
+    <string name="join_us_today">आज आमच्याशी सामील व्हा</string>
+    <string name="confirm_password">पासवर्डची पुष्टी करा</string>
+    <string name="already_have_account">आधीच खाते आहे?</string>
+    <string name="dont_have_account">खाते नाही?</string>
+    <string name="sign_in_with_google">Google सह साइन इन करा</string>
+    <string name="or_continue_with">किंवा यासह पुढे जा</string>
+    
+    <!-- Error Messages -->
+    <string name="error_occurred">एक त्रुटी आली</string>
+    <string name="invalid_email">अवैध ईमेल पत्ता</string>
+    <string name="password_too_short">पासवर्ड किमान 6 अक्षरांचा असावा</string>
+    <string name="passwords_dont_match">पासवर्ड जुळत नाहीत</string>
+    <string name="login_failed">लॉगिन अयशस्वी</string>
+    <string name="signup_failed">साइन अप अयशस्वी</string>
+    <string name="tts_not_available">मजकूर-ते-आवाज उपलब्ध नाही</string>
+    <string name="language_not_supported">भाषा समर्थित नाही</string>
+    
+    <!-- Progress -->
+    <string name="progress">प्रगती</string>
+    <string name="segment_of">%2$d पैकी %1$d</string>
+    
+    <!-- Settings -->
+    <string name="settings">सेटिंग्स</string>
+    <string name="advanced_controls">प्रगत नियंत्रण</string>
+    <string name="show_controls">नियंत्रण दाखवा</string>
+    <string name="hide_controls">नियंत्रण लपवा</string>
+</resources>

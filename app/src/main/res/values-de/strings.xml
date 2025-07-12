@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PDF zu Sprache</string>
+    
+    <!-- Main Screen -->
+    <string name="pdf_to_voice_reader">PDF zu Sprache Reader</string>
+    <string name="select_pdf_file">PDF-Datei auswählen</string>
+    <string name="choose_file">Datei auswählen</string>
+    <string name="use_demo_content">Demo-Inhalt verwenden</string>
+    <string name="logout">Abmelden</string>
+    
+    <!-- PDF Processing -->
+    <string name="extracted_text">Extrahierter Text</string>
+    <string name="no_text_extracted">Kein Text aus PDF extrahiert</string>
+    <string name="processing_pdf">PDF wird verarbeitet...</string>
+    <string name="pdf_processed_successfully">PDF erfolgreich verarbeitet</string>
+    
+    <!-- TTS Controls -->
+    <string name="playback_controls">Wiedergabe-Steuerung</string>
+    <string name="play">Abspielen</string>
+    <string name="pause">Pausieren</string>
+    <string name="stop">Stoppen</string>
+    <string name="resume">Fortsetzen</string>
+    <string name="speed">Geschwindigkeit</string>
+    <string name="pitch">Tonhöhe</string>
+    <string name="language">Sprache</string>
+    <string name="select_language">Sprache auswählen</string>
+    
+    <!-- Authentication -->
+    <string name="welcome_back">Willkommen zurück</string>
+    <string name="sign_in_to_continue">Anmelden um fortzufahren</string>
+    <string name="email">E-Mail</string>
+    <string name="password">Passwort</string>
+    <string name="sign_in">Anmelden</string>
+    <string name="sign_up">Registrieren</string>
+    <string name="create_account">Konto erstellen</string>
+    <string name="join_us_today">Mach heute mit</string>
+    <string name="confirm_password">Passwort bestätigen</string>
+    <string name="already_have_account">Haben Sie bereits ein Konto?</string>
+    <string name="dont_have_account">Haben Sie noch kein Konto?</string>
+    <string name="sign_in_with_google">Mit Google anmelden</string>
+    <string name="or_continue_with">oder fortfahren mit</string>
+    
+    <!-- Error Messages -->
+    <string name="error_occurred">Ein Fehler ist aufgetreten</string>
+    <string name="invalid_email">Ungültige E-Mail-Adresse</string>
+    <string name="password_too_short">Passwort muss mindestens 6 Zeichen haben</string>
+    <string name="passwords_dont_match">Passwörter stimmen nicht überein</string>
+    <string name="login_failed">Anmeldung fehlgeschlagen</string>
+    <string name="signup_failed">Registrierung fehlgeschlagen</string>
+    <string name="tts_not_available">Sprachsynthese nicht verfügbar</string>
+    <string name="language_not_supported">Sprache nicht unterstützt</string>
+    
+    <!-- Progress -->
+    <string name="progress">Fortschritt</string>
+    <string name="segment_of">%1$d von %2$d</string>
+    
+    <!-- Settings -->
+    <string name="settings">Einstellungen</string>
+    <string name="advanced_controls">Erweiterte Steuerung</string>
+    <string name="show_controls">Steuerung anzeigen</string>
+    <string name="hide_controls">Steuerung ausblenden</string>
+</resources>

@@ -3,16 +3,24 @@ package com.example.pdftovoice.tts
 import android.content.Context
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import com.example.pdftovoice.data.LanguagePreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
+data class Language(
+    val code: String,
+    val name: String,
+    val locale: Locale
+)
+
 class TtsManager(private val context: Context) {
     
     private var textToSpeech: TextToSpeech? = null
     private var isInitialized = false
+    private val languagePreferences = LanguagePreferences(context)
     
     // Use thread-safe state management
     private val _isPlaying = MutableStateFlow(false)
@@ -33,6 +41,12 @@ class TtsManager(private val context: Context) {
     private val _pitch = MutableStateFlow(1.0f)
     val pitch: StateFlow<Float> = _pitch.asStateFlow()
     
+    private val _currentLanguage = MutableStateFlow(getDefaultLanguage())
+    val currentLanguage: StateFlow<Language> = _currentLanguage.asStateFlow()
+    
+    private val _availableLanguages = MutableStateFlow<List<Language>>(emptyList())
+    val availableLanguages: StateFlow<List<Language>> = _availableLanguages.asStateFlow()
+    
     // Optimized for memory efficiency
     private var textSegments: List<String> = emptyList()
     private var currentSegmentIndex = 0
@@ -43,14 +57,46 @@ class TtsManager(private val context: Context) {
     companion object {
         private const val MAX_CACHE_SIZE = 10
         private const val MAX_SEGMENT_LENGTH = 200 // Optimal for TTS
+        
+        private val SUPPORTED_LANGUAGES = listOf(
+            Language("en", "English", Locale.ENGLISH),
+            Language("es", "Español", Locale.forLanguageTag("es")),
+            Language("fr", "Français", Locale.FRENCH),
+            Language("de", "Deutsch", Locale.GERMAN),
+            Language("it", "Italiano", Locale.ITALIAN),
+            Language("pt", "Português", Locale.forLanguageTag("pt")),
+            Language("ru", "Русский", Locale.forLanguageTag("ru")),
+            Language("zh", "中文", Locale.CHINESE),
+            Language("ja", "日本語", Locale.JAPANESE),
+            Language("ko", "한국어", Locale.KOREAN),
+            Language("ar", "العربية", Locale.forLanguageTag("ar")),
+            Language("hi", "हिन्दी", Locale.forLanguageTag("hi")),
+            Language("mr", "मराठी", Locale.forLanguageTag("mr")),
+            Language("ta", "தமிழ்", Locale.forLanguageTag("ta")),
+            Language("te", "తెలుగు", Locale.forLanguageTag("te")),
+            Language("bn", "বাংলা", Locale.forLanguageTag("bn")),
+            Language("gu", "ગુજરાતી", Locale.forLanguageTag("gu")),
+            Language("kn", "ಕನ್ನಡ", Locale.forLanguageTag("kn")),
+            Language("ml", "മലയാളം", Locale.forLanguageTag("ml")),
+            Language("pa", "ਪੰਜਾਬੀ", Locale.forLanguageTag("pa")),
+            Language("nl", "Nederlands", Locale.forLanguageTag("nl")),
+            Language("sv", "Svenska", Locale.forLanguageTag("sv")),
+            Language("da", "Dansk", Locale.forLanguageTag("da")),
+            Language("no", "Norsk", Locale.forLanguageTag("no")),
+            Language("fi", "Suomi", Locale.forLanguageTag("fi")),
+            Language("pl", "Polski", Locale.forLanguageTag("pl")),
+            Language("tr", "Türkçe", Locale.forLanguageTag("tr")),
+            Language("th", "ไทย", Locale.forLanguageTag("th"))
+        )
     }
     
     fun initialize(onInitialized: (Boolean) -> Unit) {
         textToSpeech = TextToSpeech(context) { status ->
             isInitialized = status == TextToSpeech.SUCCESS
             if (isInitialized) {
-                textToSpeech?.language = Locale.getDefault()
+                textToSpeech?.language = _currentLanguage.value.locale
                 setupUtteranceListener()
+                checkAvailableLanguages()
             }
             onInitialized(isInitialized)
         }
@@ -82,6 +128,72 @@ class TtsManager(private val context: Context) {
                 _isPlaying.value = false
             }
         })
+    }
+    
+    private fun loadAvailableLanguages() {
+        val locales = Locale.getAvailableLocales()
+        val languages = locales.mapNotNull { locale ->
+            try {
+                val displayName = locale.getDisplayLanguage(locale)
+                if (displayName.isNotEmpty() && !locale.language.equals("und", ignoreCase = true)) {
+                    Language(locale.language, displayName, locale)
+                } else null
+            } catch (e: Exception) {
+                null
+            }
+        }.distinctBy { it.code }
+        
+        _availableLanguages.value = languages
+    }
+    
+    private fun checkAvailableLanguages() {
+        val availableLanguages = mutableListOf<Language>()
+        
+        SUPPORTED_LANGUAGES.forEach { language ->
+            val result = textToSpeech?.isLanguageAvailable(language.locale)
+            if (result == TextToSpeech.LANG_AVAILABLE || 
+                result == TextToSpeech.LANG_COUNTRY_AVAILABLE ||
+                result == TextToSpeech.LANG_COUNTRY_VAR_AVAILABLE) {
+                availableLanguages.add(language)
+            }
+        }
+        
+        _availableLanguages.value = availableLanguages.ifEmpty { 
+            listOf(getDefaultLanguage()) 
+        }
+    }
+    
+    fun setLanguage(language: Language): Boolean {
+        if (!isInitialized) return false
+        
+        val result = textToSpeech?.setLanguage(language.locale)
+        return if (result == TextToSpeech.LANG_AVAILABLE || 
+                   result == TextToSpeech.LANG_COUNTRY_AVAILABLE ||
+                   result == TextToSpeech.LANG_COUNTRY_VAR_AVAILABLE) {
+            _currentLanguage.value = language
+            languagePreferences.saveSelectedLanguage(language)
+            true
+        } else {
+            false
+        }
+    }
+    
+    fun isLanguageAvailable(language: Language): Boolean {
+        val result = textToSpeech?.isLanguageAvailable(language.locale)
+        return result == TextToSpeech.LANG_AVAILABLE || 
+               result == TextToSpeech.LANG_COUNTRY_AVAILABLE ||
+               result == TextToSpeech.LANG_COUNTRY_VAR_AVAILABLE
+    }
+    
+    private fun getDefaultLanguage(): Language {
+        // First check saved language preference
+        languagePreferences.getSelectedLanguage()?.let { return it }
+        
+        // Fall back to system locale
+        val systemLocale = Locale.getDefault()
+        return SUPPORTED_LANGUAGES.find { 
+            it.locale.language == systemLocale.language 
+        } ?: SUPPORTED_LANGUAGES.first() // Default to English
     }
     
     fun speak(text: String) {

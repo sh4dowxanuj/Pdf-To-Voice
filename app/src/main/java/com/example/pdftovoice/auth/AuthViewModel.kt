@@ -1,11 +1,13 @@
 package com.example.pdftovoice.auth
 
+import android.app.Application
 import android.content.Context
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.pdftovoice.data.UserPreferences
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.common.api.ApiException
 import kotlinx.coroutines.launch
@@ -15,11 +17,25 @@ sealed class AuthState {
     object Loading : AuthState()
     object Success : AuthState()
     data class Error(val message: String) : AuthState()
+    object CheckingAuth : AuthState()
 }
 
-class AuthViewModel : ViewModel() {
-    val authService = AuthService()
-    val authState = mutableStateOf<AuthState>(AuthState.Idle)
+class AuthViewModel(application: Application) : AndroidViewModel(application) {
+    private val userPreferences = UserPreferences(application)
+    val authService = AuthService(userPreferences)
+    val authState = mutableStateOf<AuthState>(AuthState.CheckingAuth)
+    
+    init {
+        checkAuthState()
+    }
+    
+    private fun checkAuthState() {
+        if (authService.isUserLoggedIn()) {
+            authState.value = AuthState.Success
+        } else {
+            authState.value = AuthState.Idle
+        }
+    }
     
     fun signIn(email: String, password: String, onResult: (Boolean, String?) -> Unit) {
         viewModelScope.launch {

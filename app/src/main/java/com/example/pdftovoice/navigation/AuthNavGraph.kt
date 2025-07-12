@@ -1,20 +1,43 @@
 package com.example.pdftovoice.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.pdftovoice.auth.AuthState
+import com.example.pdftovoice.auth.AuthViewModel
 import com.example.pdftovoice.auth.LoginScreen
 import com.example.pdftovoice.auth.SignUpScreen
-import com.example.pdftovoice.home.HomeScreen
+import com.example.pdftovoice.ui.screens.PdfToVoiceScreen
 
 @Composable
 fun AuthNavGraph() {
     val navController = rememberNavController()
+    val authViewModel: AuthViewModel = viewModel()
+    val authState by authViewModel.authState
+    
+    LaunchedEffect(authState) {
+        when (authState) {
+            is AuthState.Success -> {
+                navController.navigate("home") {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+            is AuthState.Idle -> {
+                navController.navigate("login") {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+            else -> { /* Handle other states */ }
+        }
+    }
     
     NavHost(
         navController = navController,
-        startDestination = "login"
+        startDestination = if (authViewModel.authService.isUserLoggedIn()) "home" else "login"
     ) {
         composable("login") {
             LoginScreen(
@@ -43,7 +66,14 @@ fun AuthNavGraph() {
         }
         
         composable("home") {
-            HomeScreen()
+            PdfToVoiceScreen(
+                onLogout = {
+                    authViewModel.signOut()
+                    navController.navigate("login") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }
