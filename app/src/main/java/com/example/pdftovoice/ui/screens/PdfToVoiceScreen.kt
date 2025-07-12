@@ -219,14 +219,70 @@ fun PdfToVoiceScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            
+                            // Show analysis info if available
+                            selectedFile?.analysisInfo?.let { analysisInfo ->
+                                Text(
+                                    text = "Type: ${selectedFile.mimeType ?: "Unknown"}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = "Pages: ${analysisInfo.pageCount}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    if (analysisInfo.hasSelectableText) {
+                                        Text(
+                                            text = "📄 Text",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                    if (analysisInfo.isImagePdf) {
+                                        Text(
+                                            text = "🖼️ Images",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                    if (analysisInfo.isPasswordProtected) {
+                                        Text(
+                                            text = "🔒 Protected",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                }
+                                
+                                Text(
+                                    text = "Methods: ${analysisInfo.supportedMethods.size} available",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            
+                            // Show extraction method if available
+                            state.extractionMethod?.let { method ->
+                                Text(
+                                    text = "Extracted using: ${method.name.replace("_", " ")}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
                     }
                 }
             }
         }
         
-        // Loading Indicator
-        if (state.isLoading) {
+        // Loading Indicators
+        if (state.isLoading || state.isAnalyzing) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
@@ -242,7 +298,26 @@ fun PdfToVoiceScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         CircularProgressIndicator()
-                        Text("Extracting text from PDF...")
+                        Text(
+                            text = when {
+                                state.isAnalyzing -> "Analyzing PDF structure..."
+                                state.processingStatus != null -> state.processingStatus!!
+                                state.isLoading -> "Extracting text from PDF..."
+                                else -> "Processing..."
+                            }
+                        )
+                        
+                        // Show detailed status if available
+                        state.processingStatus?.let { status ->
+                            if (status != "Processing...") {
+                                Text(
+                                    text = status,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -346,6 +421,34 @@ fun PdfToVoiceScreen(
                                 contentDescription = "Settings",
                                 modifier = Modifier.size(24.dp)
                             )
+                        }
+                    }
+                    
+                    // Additional Control Buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+                    ) {
+                        // Retry button for failed extractions
+                        if (state.errorMessage?.contains("Failed", ignoreCase = true) == true) {
+                            OutlinedButton(
+                                onClick = { viewModel.retryExtraction() }
+                            ) {
+                                Icon(Icons.Default.Refresh, contentDescription = "Retry")
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Retry")
+                            }
+                        }
+                        
+                        // Show extraction method info
+                        if (state.extractionMethod != null) {
+                            OutlinedButton(
+                                onClick = { viewModel.showMethodInfo() }
+                            ) {
+                                Icon(Icons.Default.Info, contentDescription = "Method Info")
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Method")
+                            }
                         }
                     }
                     

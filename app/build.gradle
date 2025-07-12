@@ -122,8 +122,15 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0'
     implementation 'androidx.lifecycle:lifecycle-runtime-compose:2.7.0'
     
-    // PDF Processing - Using Android's built-in capabilities
+    // PDF Processing - Optimized dependencies to avoid conflicts
     implementation 'androidx.documentfile:documentfile:1.0.1'
+    implementation('com.tom-roush:pdfbox-android:2.0.27.0') {
+        exclude group: 'org.bouncycastle'
+    }
+    
+    // OCR for scanned PDFs
+    implementation 'com.google.android.gms:play-services-mlkit-text-recognition:19.0.0'
+    implementation 'com.google.mlkit:text-recognition:16.0.0'
     
     // Permission handling
     implementation 'com.google.accompanist:accompanist-permissions:0.30.1'
