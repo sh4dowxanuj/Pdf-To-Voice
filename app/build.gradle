@@ -19,12 +19,28 @@ android {
         vectorDrawables {
             useSupportLibrary true
         }
+        
+        // Optimize for better performance
+        ndk {
+            abiFilters 'arm64-v8a', 'armeabi-v7a'
+        }
     }
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            
+            // Optimize for release builds
+            debuggable false
+            jniDebuggable false
+            renderscriptDebuggable false
+        }
+        debug {
+            minifyEnabled false
+            shrinkResources false
+            debuggable true
         }
     }
     
@@ -34,17 +50,26 @@ android {
     }
     kotlinOptions {
         jvmTarget = '1.8'
+        freeCompilerArgs += [
+            "-opt-in=kotlin.RequiresOptIn",
+            "-Xjvm-default=all"
+        ]
     }
     buildFeatures {
         compose true
         viewBinding true
+        buildConfig true
     }
     composeOptions {
         kotlinCompilerExtensionVersion '1.5.4'
     }
     packagingOptions {
         resources {
-            excludes += '/META-INF/{AL2.0,LGPL2.1}'
+            excludes += [
+                '/META-INF/{AL2.0,LGPL2.1}',
+                '/META-INF/INDEX.LIST',
+                '/META-INF/DEPENDENCIES'
+            ]
         }
     }
 }
@@ -95,6 +120,16 @@ dependencies {
     // Additional UI
     implementation 'androidx.compose.material:material-icons-extended'
     implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0'
+    implementation 'androidx.lifecycle:lifecycle-runtime-compose:2.7.0'
+    
+    // PDF Processing - Using Android's built-in capabilities
+    implementation 'androidx.documentfile:documentfile:1.0.1'
+    
+    // Permission handling
+    implementation 'com.google.accompanist:accompanist-permissions:0.30.1'
+    
+    // File picker
+    implementation 'androidx.activity:activity-ktx:1.8.2'
     
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'

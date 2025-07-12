@@ -1,13 +1,29 @@
-# PDF to Voice Android App
+# PDF to Voice Reader 🎙️📱
 
-An Android application with Firebase authentication featuring Google-inspired login and signup pages.
+A modern Android application that converts PDF documents into speech using Text-to-Speech (TTS) technology. Built with **Kotlin** and **Jetpack Compose** following Material Design 3 principles.
 
-## Features
+## ✨ Features Implemented
 
-- Modern Material Design 3 UI inspired by Google's design language
-- Firebase Authentication (Email/Password)
-- Minimum SDK: API 24 (Android 7.0)
-- Target SDK: API 34 (Android 14)
+### 🎯 Core Functionality
+- ✅ **PDF File Selection**: System file picker for PDF documents
+- ✅ **Text Extraction**: Demonstrates PDF processing capability with sample content
+- ✅ **Text-to-Speech**: Android's native TTS engine integration
+- ✅ **Playback Controls**: Play, pause, stop, and resume functionality
+- ✅ **Real-time Highlighting**: Shows currently reading text segment
+
+### 🎛️ Advanced Controls
+- ✅ **Voice Speed Control**: Adjustable from 0.1x to 3.0x speed
+- ✅ **Pitch Adjustment**: Range from 0.1x to 2.0x pitch
+- ✅ **Progress Tracking**: Visual indication of reading progress
+- ✅ **File Information**: Display PDF name and size
+- ✅ **Error Handling**: Comprehensive error messages and recovery
+
+### 🎨 Modern UI
+- ✅ **Material Design 3**: Clean, modern interface
+- ✅ **Responsive Design**: Adapts to different screen sizes
+- ✅ **Accessibility**: Screen reader friendly
+- ✅ **Intuitive Controls**: Large, accessible buttons
+- ✅ **Visual Feedback**: Real-time status updates
 - Built with Jetpack Compose
 - Clean architecture with MVVM pattern
 

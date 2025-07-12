@@ -66,11 +66,18 @@ fun LoginScreen(
                 }
             } catch (e: ApiException) {
                 isLoading = false
-                errorMessage = "Google sign in failed: ${e.message}"
+                errorMessage = when (e.statusCode) {
+                    10 -> "Developer Error: Check SHA-1 fingerprint and Web Client ID configuration"
+                    12501 -> "Google Sign-In was cancelled by user"
+                    7 -> "Network error: Check internet connection"
+                    else -> "Google sign in failed (${e.statusCode}): ${e.message}"
+                }
+                println("Google Sign-In Error: ${e.statusCode} - ${e.message}")
             }
         } else {
             isLoading = false
             errorMessage = "Google sign in was cancelled"
+            println("Google Sign-In result code: ${result.resultCode}")
         }
     }
 
