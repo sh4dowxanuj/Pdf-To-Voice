@@ -4,6 +4,7 @@ import android.content.Context
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import com.example.pdftovoice.data.LanguagePreferences
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,6 +38,16 @@ class TtsManager(private val context: Context) {
     
     private val _currentSegment = MutableStateFlow("")
     val currentSegment: StateFlow<String> = _currentSegment.asStateFlow()
+    
+    // Word-by-word highlighting support
+    private val _currentWord = MutableStateFlow("")
+    val currentWord: StateFlow<String> = _currentWord.asStateFlow()
+    
+    private val _wordIndex = MutableStateFlow(0)
+    val wordIndex: StateFlow<Int> = _wordIndex.asStateFlow()
+    
+    private var currentSentenceWords: List<String> = emptyList()
+    private var wordHighlightJob: kotlinx.coroutines.Job? = null
     
     private val _speed = MutableStateFlow(1.0f)
     val speed: StateFlow<Float> = _speed.asStateFlow()
@@ -224,7 +235,16 @@ class TtsManager(private val context: Context) {
         if (currentSegmentIndex < textSegments.size) {
             val segment = textSegments[currentSegmentIndex]
             _currentSegment.value = segment
+            
+            // Split current segment into words for highlighting
+            currentSentenceWords = segment.split(Regex("\\s+")).filter { it.isNotBlank() }
+            
             android.util.Log.d("TtsManager", "Speaking segment $currentSegmentIndex: '$segment'")
+            android.util.Log.d("TtsManager", "Words in segment: ${currentSentenceWords.size}")
+            
+            // Start word-by-word highlighting
+            startWordHighlighting(segment)
+            
             textToSpeech?.speak(segment, TextToSpeech.QUEUE_FLUSH, null, "utterance_$currentSegmentIndex")
         }
     }
@@ -261,14 +281,70 @@ class TtsManager(private val context: Context) {
         return segments
     }
     
+    private fun startWordHighlighting(segment: String) {
+        // Cancel any existing word highlighting
+        wordHighlightJob?.cancel()
+        
+        if (currentSentenceWords.isEmpty()) return
+        
+        // Enhanced word timing calculation for Spotify-like smoothness
+        val baseWordsPerMinute = 140f // Slightly slower for better readability
+        val adjustedWPM = baseWordsPerMinute * _speed.value
+        val wordsPerSecond = adjustedWPM / 60f
+        
+        // Dynamic timing based on word length and complexity
+        val calculateWordDuration = { word: String ->
+            val baseWordDuration = (1000f / wordsPerSecond).toLong()
+            val lengthMultiplier = when {
+                word.length <= 3 -> 0.8f
+                word.length <= 6 -> 1.0f
+                word.length <= 10 -> 1.2f
+                else -> 1.4f
+            }
+            // Add complexity factors for punctuation
+            val complexityMultiplier = if (word.contains(Regex("[,.!?;:]"))) 1.3f else 1.0f
+            (baseWordDuration * lengthMultiplier * complexityMultiplier).toLong()
+        }
+        
+        // Start coroutine for Spotify-style word highlighting
+        wordHighlightJob = CoroutineScope(Dispatchers.Main).launch {
+            _wordIndex.value = -1
+            _currentWord.value = ""
+            
+            // Small delay before starting to sync with TTS
+            delay(200)
+            
+            for (i in currentSentenceWords.indices) {
+                if (!isActive) break // Check if coroutine was cancelled
+                
+                val word = currentSentenceWords[i].trim()
+                if (word.isBlank()) continue
+                
+                _wordIndex.value = i
+                _currentWord.value = word
+                
+                android.util.Log.d("TtsManager", "Highlighting word $i: '$word' (${calculateWordDuration(word)}ms)")
+                
+                // Wait for calculated word duration
+                delay(calculateWordDuration(word))
+            }
+            
+            // Keep final state briefly before clearing
+            delay(300)
+            _currentWord.value = ""
+            _wordIndex.value = currentSentenceWords.size // All words completed
+        }
+    }
+    
     fun pause() {
         if (!isInitialized) return
         
         if (_isPlaying.value) {
             textToSpeech?.stop()
+            wordHighlightJob?.cancel() // Cancel word highlighting
             _isPaused.value = true
             _isPlaying.value = false
-            // Keep current segment when pausing
+            // Keep current segment and word when pausing
         }
     }
     
@@ -285,10 +361,13 @@ class TtsManager(private val context: Context) {
         if (!isInitialized) return
         
         textToSpeech?.stop()
+        wordHighlightJob?.cancel() // Cancel word highlighting
         _isPlaying.value = false
         _isPaused.value = false
         _currentPosition.value = 0
         _currentSegment.value = ""
+        _currentWord.value = ""
+        _wordIndex.value = -1
         currentSegmentIndex = 0
     }
     

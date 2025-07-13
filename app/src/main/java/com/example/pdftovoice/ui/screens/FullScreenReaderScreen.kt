@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.pdftovoice.ui.components.common.ReadingIndicator
+import com.example.pdftovoice.ui.components.reader.SynchronizedTextDisplay
 import com.example.pdftovoice.ui.system.ResponsiveDimensions.horizontalPadding
 import com.example.pdftovoice.ui.system.ResponsiveLayout.isCompact
 import com.example.pdftovoice.viewmodel.PdfToVoiceViewModel
@@ -63,6 +64,10 @@ fun FullScreenReaderScreen(
     val context = LocalContext.current
     val state by viewModel.combinedState.collectAsState(initial = PdfToVoiceState())
     val isPlaying by viewModel.isPlaying.collectAsState()
+    
+    // Collect word tracking state for Spotify-style highlighting
+    val currentWord by viewModel.currentWord.collectAsState()
+    val wordIndex by viewModel.wordIndex.collectAsState()
     
     // UI visibility states
     var showControls by remember { mutableStateOf(true) }
@@ -107,7 +112,10 @@ fun FullScreenReaderScreen(
         FullScreenTextContent(
             text = state.extractedText,
             currentSegment = state.currentlyReadingSegment,
+            currentWord = currentWord,
+            wordIndex = wordIndex,
             isPlaying = isPlaying,
+            windowSizeClass = windowSizeClass,
             isCompact = isCompact,
             modifier = Modifier
                 .fillMaxSize()
@@ -260,7 +268,10 @@ private fun TopControlsBar(
 private fun FullScreenTextContent(
     text: String,
     currentSegment: String,
+    currentWord: String,
+    wordIndex: Int,
     isPlaying: Boolean,
+    windowSizeClass: WindowSizeClass,
     isCompact: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -290,163 +301,16 @@ private fun FullScreenTextContent(
         return
     }
     
-    // Split text into sentences for highlighting - match TTS manager segmentation
-    val sentences = remember(text) {
-        text.split(Regex("(?<=[.!?])\\s+"))
-            .filter { it.isNotBlank() }
-            .map { it.trim() }
-            .map { segment ->
-                // Ensure segment ends with punctuation like TTS manager does
-                if (!segment.matches(Regex(".*[.!?]$"))) "$segment." else segment
-            }
-    }
-    
-    val listState = rememberLazyListState()
-    
-    // Debug logging for current segment changes
-    LaunchedEffect(currentSegment) {
-        if (currentSegment.isNotEmpty()) {
-            android.util.Log.d("FullScreenReader", "Current segment updated: '$currentSegment'")
-            android.util.Log.d("FullScreenReader", "Total sentences: ${sentences.size}")
-        }
-    }
-    
-    // Auto-scroll to current reading position
-    LaunchedEffect(currentSegment, isPlaying) {
-        if (currentSegment.isNotEmpty() && isPlaying) {
-            val index = sentences.indexOfFirst { sentence ->
-                // First try exact match
-                sentence.equals(currentSegment, ignoreCase = true) ||
-                // Then try normalized match (remove punctuation)
-                sentence.replace(Regex("[.!?]+$"), "").equals(currentSegment.replace(Regex("[.!?]+$"), ""), ignoreCase = true) ||
-                // Then try containment
-                sentence.contains(currentSegment, ignoreCase = true) ||
-                currentSegment.contains(sentence, ignoreCase = true) ||
-                // Fallback: word overlap (for better matching with TTS segments)
-                hasSignificantWordOverlap(sentence, currentSegment)
-            }
-            if (index >= 0) {
-                android.util.Log.d("FullScreenReader", "Scrolling to sentence $index: '${sentences[index]}'")
-                // Scroll to show current item with some context
-                val targetIndex = (index - 1).coerceAtLeast(0)
-                listState.animateScrollToItem(targetIndex)
-            } else {
-                android.util.Log.d("FullScreenReader", "No matching sentence found for segment: '$currentSegment'")
-            }
-        }
-    }
-    
-    LazyColumn(
-        state = listState,
-        modifier = modifier,
-        contentPadding = PaddingValues(
-            horizontal = if (isCompact) 16.dp else 24.dp,
-            vertical = 16.dp
-        ),
-        verticalArrangement = Arrangement.spacedBy(if (isCompact) 12.dp else 16.dp)
-    ) {
-        items(sentences) { sentence ->
-            val isCurrentlyReading = isPlaying && currentSegment.isNotEmpty() && (
-                // Exact match
-                sentence.equals(currentSegment, ignoreCase = true) ||
-                // Normalized match (remove punctuation)
-                sentence.replace(Regex("[.!?]+$"), "").equals(currentSegment.replace(Regex("[.!?]+$"), ""), ignoreCase = true) ||
-                // Containment match
-                sentence.contains(currentSegment, ignoreCase = true) ||
-                currentSegment.contains(sentence, ignoreCase = true) ||
-                // Word overlap match
-                hasSignificantWordOverlap(sentence, currentSegment)
-            )
-            
-            HighlightedTextSentence(
-                text = sentence,
-                isCurrentlyReading = isCurrentlyReading,
-                isCompact = isCompact
-            )
-        }
-    }
-}
-
-/**
- * Helper function to check if two text segments have significant word overlap
- * This helps match TTS segments with UI text segments when they're split differently
- */
-private fun hasSignificantWordOverlap(sentence: String, segment: String): Boolean {
-    val sentenceWords = sentence.lowercase().split(Regex("\\s+")).filter { it.length > 2 }
-    val segmentWords = segment.lowercase().split(Regex("\\s+")).filter { it.length > 2 }
-    
-    if (sentenceWords.isEmpty() || segmentWords.isEmpty()) return false
-    
-    val commonWords = sentenceWords.intersect(segmentWords.toSet())
-    val overlapPercentage = commonWords.size.toFloat() / minOf(sentenceWords.size, segmentWords.size)
-    
-    return overlapPercentage >= 0.5f // At least 50% word overlap
-}
-
-@Composable
-private fun HighlightedTextSentence(
-    text: String,
-    isCurrentlyReading: Boolean,
-    isCompact: Boolean,
-    modifier: Modifier = Modifier
-) {
-    val backgroundColor by animateColorAsState(
-        targetValue = if (isCurrentlyReading) {
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-        } else {
-            Color.Transparent
-        },
-        animationSpec = tween(300, easing = EaseInOut), 
-        label = "backgroundColor"
-    )
-    
-    val textColor by animateColorAsState(
-        targetValue = if (isCurrentlyReading) {
-            MaterialTheme.colorScheme.onPrimary
-        } else {
-            MaterialTheme.colorScheme.onBackground
-        },
-        animationSpec = tween(300, easing = EaseInOut), 
-        label = "textColor"
-    )
-    
-    val borderColor by animateColorAsState(
-        targetValue = if (isCurrentlyReading) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            Color.Transparent
-        },
-        animationSpec = tween(300, easing = EaseInOut), 
-        label = "borderColor"
-    )
-    
-    Box(
+    // Use the new SynchronizedTextDisplay with Spotify-style highlighting
+    SynchronizedTextDisplay(
+        text = text,
+        currentlyReadingSegment = currentSegment,
+        currentWord = currentWord,
+        wordIndex = wordIndex,
+        isPlaying = isPlaying,
+        windowSizeClass = windowSizeClass,
         modifier = modifier
-            .fillMaxWidth()
-            .background(
-                color = backgroundColor,
-                shape = RoundedCornerShape(8.dp)
-            )
-            .border(
-                width = if (isCurrentlyReading) 2.dp else 0.dp,
-                color = borderColor,
-                shape = RoundedCornerShape(8.dp)
-            )
-            .padding(
-                horizontal = if (isCurrentlyReading) 16.dp else 12.dp,
-                vertical = if (isCurrentlyReading) 12.dp else 8.dp
-            )
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge.copy(
-                fontSize = if (isCompact) 16.sp else 18.sp,
-                lineHeight = if (isCompact) 24.sp else 28.sp,
-                fontWeight = if (isCurrentlyReading) FontWeight.SemiBold else FontWeight.Normal
-            ),
-            color = textColor
-        )
-    }
+    )
 }
 
 @Composable

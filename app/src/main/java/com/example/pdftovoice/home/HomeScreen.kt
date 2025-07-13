@@ -34,7 +34,10 @@ fun HomeScreen(
     // Optional parameters for enhanced functionality
     extractedText: String = "",
     currentlyReadingSegment: String = "",
-    isPlaying: Boolean = false
+    isPlaying: Boolean = false,
+    // Word-level highlighting parameters
+    currentWord: String = "",
+    wordIndex: Int = -1
 ) {
     // Responsive dimensions
     val horizontalPadding = windowSizeClass.horizontalPadding()
@@ -46,62 +49,13 @@ fun HomeScreen(
     val cornerRadius = windowSizeClass.cornerRadius()
     val isCompact = windowSizeClass.isCompact()
     
-    // State for fullscreen text panel and demo text
+    // State for fullscreen text panel
     var showFullscreenText by remember { mutableStateOf(false) }
-    var showDemoText by remember { mutableStateOf(false) }
-    var currentDemoSegment by remember { mutableStateOf("") }
-    var demoIsPlaying by remember { mutableStateOf(false) }
     
-    // Demo text for showcasing autoscroll and highlighting features
-    val demoText = """
-Welcome to the PDF to Voice Reader! This application transforms your PDF documents into an engaging audio experience.
-
-Our innovative autoscrolling technology follows along as text is being read aloud. The highlighted sections move smoothly through the document, ensuring you never lose your place.
-
-The synchronized lyrics display works just like your favorite music apps. Each sentence is highlighted in real-time as it's being spoken.
-
-You can also open any text in fullscreen mode for an immersive reading experience. The fullscreen view includes enhanced typography and text selection capabilities.
-
-This demo showcases the core features: automatic scrolling, real-time highlighting, and responsive design that adapts to any screen size.
-
-Try the fullscreen button to see how the text appears in a dedicated reading environment with enhanced readability features.
-
-The application supports PDF files of any size and automatically breaks them into manageable segments for optimal listening experience.
-    """.trimIndent()
-    
-    // Demo segments for auto-highlight simulation - simplified for better matching
-    val demoSegments = remember {
-        listOf(
-            "Welcome to the PDF to Voice Reader!",
-            "This application transforms your PDF documents into an engaging audio experience.",
-            "Our innovative autoscrolling technology follows along as text is being read aloud.",
-            "The highlighted sections move smoothly through the document, ensuring you never lose your place.",
-            "The synchronized lyrics display works just like your favorite music apps.",
-            "Each sentence is highlighted in real-time as it's being spoken.",
-            "You can also open any text in fullscreen mode for an immersive reading experience.",
-            "The fullscreen view includes enhanced typography and text selection capabilities.",
-            "This demo showcases the core features: automatic scrolling, real-time highlighting, and responsive design that adapts to any screen size.",
-            "Try the fullscreen button to see how the text appears in a dedicated reading environment with enhanced readability features.",
-            "The application supports PDF files of any size and automatically breaks them into manageable segments for optimal listening experience."
-        )
-    }
-    
-    // Auto-advance demo highlighting every 2.5 seconds for better visibility
-    LaunchedEffect(demoIsPlaying) {
-        if (demoIsPlaying && showDemoText) {
-            var currentIndex = 0
-            while (demoIsPlaying && currentIndex < demoSegments.size) {
-                currentDemoSegment = demoSegments[currentIndex]
-                kotlinx.coroutines.delay(2500) // 2.5 seconds per segment for better readability
-                currentIndex = (currentIndex + 1) % demoSegments.size // Loop back to beginning
-            }
-        }
-    }
-    
-    // Use either provided text or demo text
-    val displayText = if (extractedText.isNotEmpty()) extractedText else if (showDemoText) demoText else ""
-    val currentSegment = if (extractedText.isNotEmpty()) currentlyReadingSegment else currentDemoSegment
-    val isCurrentlyPlaying = if (extractedText.isNotEmpty()) isPlaying else demoIsPlaying
+    // Use provided text
+    val displayText = extractedText
+    val currentSegment = currentlyReadingSegment
+    val isCurrentlyPlaying = isPlaying
     
     Column(
         modifier = Modifier
@@ -109,9 +63,11 @@ The application supports PDF files of any size and automatically breaks them int
             .widthIn(max = contentMaxWidth)
             .padding(horizontal = horizontalPadding, vertical = verticalPadding * 2),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = if (displayText.isNotEmpty()) Arrangement.Top else Arrangement.Center
+        verticalArrangement = Arrangement.Top
     ) {
         // Welcome Section
+        Spacer(modifier = Modifier.height(sectionSpacing * 2))
+        
         Text(
             text = "Welcome to PDF to Voice!",
             fontSize = (24 * scaleFactor).sp,
@@ -121,15 +77,13 @@ The application supports PDF files of any size and automatically breaks them int
         
         Spacer(modifier = Modifier.height(sectionSpacing))
         
-        Text(
-            text = when {
-                extractedText.isNotEmpty() -> "Reading in progress with autoscrolling highlights"
-                showDemoText -> "Demo: Autoscrolling text with live highlighting"
-                else -> "You have successfully logged in."
-            },
-            fontSize = (16 * scaleFactor).sp,
-            color = MaterialTheme.colorScheme.onSurface
-        )
+        if (extractedText.isNotEmpty()) {
+            Text(
+                text = "Reading in progress with autoscrolling highlights",
+                fontSize = (16 * scaleFactor).sp,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
         
         Spacer(modifier = Modifier.height(sectionSpacing * 2))
         
@@ -157,53 +111,6 @@ The application supports PDF files of any size and automatically breaks them int
                         "Start Reading PDFs",
                         fontSize = (16 * scaleFactor).sp
                     )
-                }
-                
-                // Demo button
-                if (!showDemoText) {
-                    OutlinedButton(
-                        onClick = { 
-                            showDemoText = true
-                            demoIsPlaying = true
-                        },
-                        modifier = Modifier.height(mainButtonSize)
-                    ) {
-                        Text(
-                            "Try Demo Features",
-                            fontSize = (16 * scaleFactor).sp
-                        )
-                    }
-                } else {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = { demoIsPlaying = !demoIsPlaying },
-                            modifier = Modifier.height(mainButtonSize),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (demoIsPlaying) MaterialTheme.colorScheme.secondary else GoogleBlue
-                            )
-                        ) {
-                            Text(
-                                if (demoIsPlaying) "Pause Demo" else "Play Demo",
-                                fontSize = (14 * scaleFactor).sp
-                            )
-                        }
-                        
-                        OutlinedButton(
-                            onClick = { 
-                                showDemoText = false
-                                demoIsPlaying = false
-                                currentDemoSegment = ""
-                            },
-                            modifier = Modifier.height(mainButtonSize)
-                        ) {
-                            Text(
-                                "Hide Demo",
-                                fontSize = (14 * scaleFactor).sp
-                            )
-                        }
-                    }
                 }
                 
                 // Fullscreen button (if text is available)
@@ -248,49 +155,6 @@ The application supports PDF files of any size and automatically breaks them int
                         "Start Reading PDFs",
                         fontSize = (16 * scaleFactor).sp
                     )
-                }
-                
-                // Demo button
-                if (!showDemoText) {
-                    OutlinedButton(
-                        onClick = { 
-                            showDemoText = true
-                            demoIsPlaying = true
-                        },
-                        modifier = Modifier.height(mainButtonSize)
-                    ) {
-                        Text(
-                            "Try Demo Features",
-                            fontSize = (16 * scaleFactor).sp
-                        )
-                    }
-                } else {
-                    Button(
-                        onClick = { demoIsPlaying = !demoIsPlaying },
-                        modifier = Modifier.height(mainButtonSize),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (demoIsPlaying) MaterialTheme.colorScheme.secondary else GoogleBlue
-                        )
-                    ) {
-                        Text(
-                            if (demoIsPlaying) "Pause Demo" else "Play Demo",
-                            fontSize = (16 * scaleFactor).sp
-                        )
-                    }
-                    
-                    OutlinedButton(
-                        onClick = { 
-                            showDemoText = false
-                            demoIsPlaying = false
-                            currentDemoSegment = ""
-                        },
-                        modifier = Modifier.height(mainButtonSize)
-                    ) {
-                        Text(
-                            "Hide Demo",
-                            fontSize = (16 * scaleFactor).sp
-                        )
-                    }
                 }
                 
                 // Fullscreen button (if text is available)
@@ -369,7 +233,7 @@ The application supports PDF files of any size and automatically breaks them int
                                         )
                                 )
                                 Text(
-                                    text = if (showDemoText) "Demo Playing" else "Reading",
+                                    text = "Reading",
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontSize = (12 * scaleFactor).sp
                                     ),
@@ -385,6 +249,8 @@ The application supports PDF files of any size and automatically breaks them int
                     SynchronizedTextDisplay(
                         text = displayText,
                         currentlyReadingSegment = currentSegment,
+                        currentWord = currentWord,
+                        wordIndex = wordIndex,
                         isPlaying = isCurrentlyPlaying,
                         windowSizeClass = windowSizeClass,
                         modifier = Modifier.fillMaxWidth()
@@ -399,6 +265,8 @@ The application supports PDF files of any size and automatically breaks them int
         SynchronizedTextDisplay(
             text = displayText,
             currentlyReadingSegment = currentSegment,
+            currentWord = currentWord,
+            wordIndex = wordIndex,
             isPlaying = isCurrentlyPlaying,
             windowSizeClass = windowSizeClass,
             modifier = Modifier.fillMaxSize()

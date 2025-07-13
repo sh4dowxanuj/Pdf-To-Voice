@@ -597,6 +597,8 @@ private fun TextDisplaySection(
                 SynchronizedTextDisplay(
                     text = state.extractedText,
                     currentlyReadingSegment = state.currentlyReadingSegment,
+                    currentWord = "", // Simplified for now
+                    wordIndex = -1, // Simplified for now  
                     isPlaying = isPlaying,
                     windowSizeClass = windowSizeClass,
                     modifier = Modifier.fillMaxWidth()

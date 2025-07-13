@@ -6,7 +6,6 @@
     <string name="pdf_to_voice_reader">Lecteur PDF vers Voix</string>
     <string name="select_pdf_file">Sélectionner un fichier PDF</string>
     <string name="choose_file">Choisir un fichier</string>
-    <string name="use_demo_content">Utiliser le contenu de démonstration</string>
     <string name="logout">Se déconnecter</string>
     
     <!-- PDF Processing -->

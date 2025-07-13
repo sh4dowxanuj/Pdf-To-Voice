@@ -52,11 +52,15 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
     val state: StateFlow<PdfToVoiceState> = _state.asStateFlow()
     
     // TTS State flows
-    val isPlaying = ttsManager.isPlaying
-    val isPaused = ttsManager.isPaused
-    val currentPosition = ttsManager.currentPosition
-    val speed = ttsManager.speed
-    val pitch = ttsManager.pitch
+    val isPlaying: StateFlow<Boolean> = ttsManager.isPlaying
+    val isPaused: StateFlow<Boolean> = ttsManager.isPaused
+    val currentPosition: StateFlow<Int> = ttsManager.currentPosition
+    val speed: StateFlow<Float> = ttsManager.speed
+    val pitch: StateFlow<Float> = ttsManager.pitch
+    
+    // Word-by-word highlighting states
+    val currentWord: StateFlow<String> = ttsManager.currentWord
+    val wordIndex: StateFlow<Int> = ttsManager.wordIndex
     
     // Language state from TTS Manager
     val currentLanguage: StateFlow<Language> = ttsManager.currentLanguage
@@ -248,19 +252,13 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
                 Log.d(TAG, "Text extraction completed using ${result.method}")
                 
                 val statusMessage = buildString {
-                    if (result.method == PdfProcessor.ExtractionMethod.FALLBACK_SAMPLE) {
-                        append("⚠️ Text extraction failed\n")
-                        append("Unable to extract readable text from this PDF.\n")
-                        append("Please try a different PDF file.")
-                    } else {
-                        append("✅ Extraction Complete!\n")
-                        append("Method: ${result.method.name.replace("_", " ")}\n")
-                        append("Text Length: ${result.text.length} characters\n")
-                        append("Pages Processed: ${result.pageCount}")
-                        
-                        if (result.hasImages) {
-                            append("\n📷 Contains images")
-                        }
+                    append("✅ Extraction Complete!\n")
+                    append("Method: ${result.method.name.replace("_", " ")}\n")
+                    append("Text Length: ${result.text.length} characters\n")
+                    append("Pages Processed: ${result.pageCount}")
+                    
+                    if (result.hasImages) {
+                        append("\n📷 Contains images")
                     }
                 }
                 
@@ -269,9 +267,7 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
                     extractionMethod = result.method,
                     isLoading = false,
                     processingStatus = null,
-                    errorMessage = if (result.method == PdfProcessor.ExtractionMethod.FALLBACK_SAMPLE) {
-                        statusMessage
-                    } else if (result.text.length > 50000) {
+                    errorMessage = if (result.text.length > 50000) {
                         "Large document extracted (${result.text.length} characters). $statusMessage"
                     } else {
                         statusMessage
@@ -372,8 +368,6 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
                     "Text extracted using OCR - machine learning recognition for scanned documents"
                 PdfProcessor.ExtractionMethod.HYBRID -> 
                     "Text extracted using hybrid approach - PDFBox and OCR combined"
-                PdfProcessor.ExtractionMethod.FALLBACK_SAMPLE -> 
-                    "Using demonstration content - original PDF may require special handling"
             }
         }
     }

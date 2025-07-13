@@ -5,8 +5,7 @@
     <!-- Main Screen -->
     <string name="pdf_to_voice_reader">PDF zu Sprache Reader</string>
     <string name="select_pdf_file">PDF-Datei auswählen</string>
-    <string name="choose_file">Datei auswählen</string>
-    <string name="use_demo_content">Demo-Inhalt verwenden</string>
+    <string name="choose_file">Datei wählen</string>
     <string name="logout">Abmelden</string>
     
     <!-- PDF Processing -->

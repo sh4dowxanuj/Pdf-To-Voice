@@ -52,7 +52,6 @@ class PdfProcessor(private val context: Context) {
     enum class ExtractionMethod {
         PDFBOX_ANDROID,
         ANDROID_RENDERER_OCR,
-        FALLBACK_SAMPLE,
         HYBRID
     }
 
@@ -122,7 +121,7 @@ class PdfProcessor(private val context: Context) {
                        "• Corrupted or in an unsupported format\n" +
                        "• Contains only images or graphics\n\n" +
                        "Please try a different PDF file with readable text content.",
-                method = ExtractionMethod.FALLBACK_SAMPLE,
+                method = ExtractionMethod.HYBRID,
                 pageCount = 1
             )
             
@@ -303,18 +302,16 @@ class PdfProcessor(private val context: Context) {
             pdfRenderer.close()
             fileDescriptor.close()
             
-            val fallbackText = generateAdvancedSampleText(pageCount)
-            
             ExtractionResult(
-                text = fallbackText,
-                method = ExtractionMethod.FALLBACK_SAMPLE,
+                text = "Unable to extract text from this PDF document. The file may be image-based or encrypted.",
+                method = ExtractionMethod.HYBRID,
                 pageCount = pageCount
             )
         } catch (e: Exception) {
             Log.w(TAG, "Even fallback failed: ${e.message}")
             ExtractionResult(
-                text = generateAdvancedSampleText(1),
-                method = ExtractionMethod.FALLBACK_SAMPLE,
+                text = "Error processing PDF file: ${e.message}",
+                method = ExtractionMethod.HYBRID,
                 pageCount = 1
             )
         }
@@ -341,56 +338,4 @@ class PdfProcessor(private val context: Context) {
         }
     }
 
-    private fun generateAdvancedSampleText(pageCount: Int): String {
-        return """
-            📄 PDF Analysis Complete! 
-            
-            Document Details:
-            • Pages: $pageCount
-            • Processing: Advanced Multi-Method Text Extraction
-            • Compatibility: All PDF types supported
-            
-            🔧 Extraction Methods Available:
-            
-            1. PDFBox Android - Advanced parsing for all PDF documents  
-            2. OCR Technology - Machine learning text recognition for scanned PDFs
-            3. Hybrid Processing - Combines multiple methods for maximum accuracy
-            
-            📊 Supported PDF Types:
-            ✅ Text-based PDFs (searchable text)
-            ✅ Image-based PDFs (scanned documents)
-            ✅ Mixed content PDFs (text + images)
-            ✅ Multi-page documents
-            ✅ Complex layouts and formatting
-            ✅ Forms and fillable PDFs
-            ✅ Password-protected PDFs (with user input)
-            ✅ Encrypted PDFs (where legally permitted)
-            ✅ OCR for scanned text recognition
-            ✅ Large file optimization (first 10 pages for OCR)
-            
-            🎯 Text-to-Speech Features:
-            • Natural speech synthesis with Android TTS
-            • Adaptive speed control (0.1x - 3.0x)
-            • Pitch adjustment for optimal listening
-            • Smart text segmentation for natural pauses
-            • Real-time progress tracking
-            • Background processing for large documents
-            
-            🚀 Performance Optimizations:
-            • Memory-efficient processing for large files
-            • Cancellable operations with proper cleanup
-            • Intelligent caching for repeated access
-            • Error recovery and fallback mechanisms
-            • OCR optimization for performance
-            
-            This demonstration showcases the app's comprehensive PDF processing capabilities. The system intelligently selects the best extraction method:
-            
-            • For text-based PDFs: PDFBox extraction provides fast, accurate text
-            • For scanned PDFs: Advanced OCR recognizes text from images
-            • For mixed content: Hybrid approach combines both methods
-            • For problematic files: Fallback ensures app continues working
-            
-            Thank you for using PDF to Voice Reader - making documents accessible through advanced technology!
-        """.trimIndent()
-    }
 }
