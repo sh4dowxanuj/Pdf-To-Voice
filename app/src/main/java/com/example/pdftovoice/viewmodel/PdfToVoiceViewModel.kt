@@ -10,6 +10,7 @@ import com.example.pdftovoice.pdf.PdfTypeDetector
 import com.example.pdftovoice.tts.TtsManager
 import com.example.pdftovoice.tts.Language
 import com.example.pdftovoice.utils.FileUtils
+import com.example.pdftovoice.utils.PerformanceUtils
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -74,12 +75,19 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
     // Job management for cancellable operations
     private var currentPdfJob: Job? = null
     private var currentAnalysisJob: Job? = null
-    private val fileInfoCache = ConcurrentHashMap<Uri, PdfFileInfo>()
+    
+    // Enhanced LRU cache with automatic cleanup
+    private val fileInfoCache = object : LinkedHashMap<Uri, PdfFileInfo>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Uri, PdfFileInfo>?): Boolean {
+            return size > MAX_CACHE_SIZE
+        }
+    }
     
     companion object {
-        private const val MAX_CACHE_SIZE = 20
+        private const val MAX_CACHE_SIZE = 30 // Increased cache size
         private const val ERROR_DISPLAY_DURATION = 5000L
         private const val TAG = "PdfToVoiceViewModel"
+        private const val LARGE_FILE_THRESHOLD = 50 * 1024 * 1024 // 50MB
     }
     
     init {
@@ -100,6 +108,9 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
     fun selectPdf(uri: Uri) {
         Log.d(TAG, "Selecting PDF: $uri")
         
+        // Performance monitoring
+        PerformanceUtils.logMemoryUsage(context, TAG)
+        
         // Cancel any ongoing operations
         currentPdfJob?.cancel()
         currentAnalysisJob?.cancel()
@@ -113,6 +124,12 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
                 isAnalyzing = false
             )
             return
+        }
+        
+        // Check memory before processing large files
+        if (PerformanceUtils.isMemoryUsageHigh(context, 75)) {
+            Log.w(TAG, "High memory usage detected, performing garbage collection")
+            PerformanceUtils.performGarbageCollection(context, TAG)
         }
         
         // Show validation message if it's a warning
@@ -370,6 +387,41 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
     
+    // Media player-style methods for FullScreenReaderScreen
+    fun togglePlayPause() {
+        if (isPlaying()) {
+            pauseReading()
+        } else if (isPaused()) {
+            resumeReading()
+        } else {
+            playText()
+        }
+    }
+    
+    fun isPlaying(): Boolean {
+        return ttsManager.isPlaying.value && !ttsManager.isPaused.value
+    }
+    
+    fun isPaused(): Boolean {
+        return ttsManager.isPaused.value
+    }
+    
+    fun getSpeed(): Float {
+        return ttsManager.speed.value
+    }
+    
+    fun getPitch(): Float {
+        return ttsManager.pitch.value
+    }
+    
+    fun setExtractedText(text: String) {
+        _state.value = _state.value.copy(
+            extractedText = text,
+            isLoading = false,
+            errorMessage = null
+        )
+    }
+
     override fun onCleared() {
         super.onCleared()
         // Cancel all ongoing operations

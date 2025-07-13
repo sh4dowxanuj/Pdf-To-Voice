@@ -25,11 +25,12 @@ class PdfProcessor(private val context: Context) {
     
     companion object {
         private const val TEMP_FILE_PREFIX = "temp_pdf_"
-        private const val BUFFER_SIZE = 8192
+        private const val BUFFER_SIZE = 16384 // Increased buffer size for better I/O performance
         private const val TAG = "PdfProcessor"
         private const val MIN_TEXT_LENGTH = 10 // Minimum text length to consider extraction successful
-        private const val OCR_BITMAP_WIDTH = 2048
-        private const val OCR_BITMAP_HEIGHT = 2048
+        private const val OCR_BITMAP_WIDTH = 1024 // Reduced for better performance
+        private const val OCR_BITMAP_HEIGHT = 1024 // Reduced for better performance
+        private const val MAX_OCR_PAGES = 15 // Increased limit for better coverage
     }
 
     private val textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
@@ -135,19 +136,16 @@ class PdfProcessor(private val context: Context) {
             ?: throw Exception("Could not open PDF file")
         
         val tempFile = File(context.cacheDir, "$TEMP_FILE_PREFIX${System.currentTimeMillis()}.pdf")
-        val outputStream = FileOutputStream(tempFile)
         
         try {
-            val buffer = ByteArray(BUFFER_SIZE)
-            var bytesRead: Int
-            while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                coroutineContext.ensureActive()
-                outputStream.write(buffer, 0, bytesRead)
+            inputStream.use { input ->
+                tempFile.outputStream().buffered(BUFFER_SIZE).use { output ->
+                    input.copyTo(output, BUFFER_SIZE)
+                }
             }
-            outputStream.flush()
-        } finally {
-            inputStream.close()
-            outputStream.close()
+        } catch (e: Exception) {
+            tempFile.delete() // Clean up on failure
+            throw e
         }
         
         tempFile
@@ -205,8 +203,8 @@ class PdfProcessor(private val context: Context) {
             val pageCount = pdfRenderer.pageCount
             val text = StringBuilder()
             
-            // Process each page with OCR (limit to first 10 pages for performance)
-            val pagesToProcess = minOf(pageCount, 10)
+            // Process each page with OCR (optimized limit for better performance)
+            val pagesToProcess = minOf(pageCount, MAX_OCR_PAGES)
             for (i in 0 until pagesToProcess) {
                 coroutineContext.ensureActive()
                 val page = pdfRenderer.openPage(i)
@@ -230,8 +228,8 @@ class PdfProcessor(private val context: Context) {
                 bitmap.recycle()
             }
             
-            if (pageCount > 10) {
-                text.append("\n[Note: Only first 10 pages processed with OCR for performance]")
+            if (pageCount > MAX_OCR_PAGES) {
+                text.append("\n[Note: Only first $MAX_OCR_PAGES pages processed with OCR for optimal performance]")
             }
             
             ExtractionResult(

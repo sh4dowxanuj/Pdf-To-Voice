@@ -43,6 +43,7 @@ fun MediaPlayerControls(
     onStop: () -> Unit,
     onSpeedChange: (Float) -> Unit,
     onPitchChange: (Float) -> Unit,
+    onFullScreen: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var showAdvancedControls by remember { mutableStateOf(false) }
@@ -91,6 +92,7 @@ fun MediaPlayerControls(
                 onPitchChange = onPitchChange,
                 showAdvancedControls = showAdvancedControls,
                 onToggleAdvanced = { showAdvancedControls = !showAdvancedControls },
+                onFullScreen = onFullScreen,
                 windowSizeClass = windowSizeClass
             )
         } else {
@@ -108,6 +110,7 @@ fun MediaPlayerControls(
                 onPitchChange = onPitchChange,
                 showAdvancedControls = showAdvancedControls,
                 onToggleAdvanced = { showAdvancedControls = !showAdvancedControls },
+                onFullScreen = onFullScreen,
                 windowSizeClass = windowSizeClass
             )
         }
@@ -128,6 +131,7 @@ private fun PlayerWideLayout(
     onPitchChange: (Float) -> Unit,
     showAdvancedControls: Boolean,
     onToggleAdvanced: () -> Unit,
+    onFullScreen: (() -> Unit)?,
     windowSizeClass: WindowSizeClass
 ) {
     val itemSpacing = windowSizeClass.itemSpacing()
@@ -169,6 +173,7 @@ private fun PlayerWideLayout(
                 onStop = onStop,
                 showAdvancedControls = showAdvancedControls,
                 onToggleAdvanced = onToggleAdvanced,
+                onFullScreen = onFullScreen,
                 windowSizeClass = windowSizeClass,
                 isCompact = false
             )
@@ -200,6 +205,7 @@ private fun PlayerCompactLayout(
     onPitchChange: (Float) -> Unit,
     showAdvancedControls: Boolean,
     onToggleAdvanced: () -> Unit,
+    onFullScreen: (() -> Unit)?,
     windowSizeClass: WindowSizeClass
 ) {
     val itemSpacing = windowSizeClass.itemSpacing()
@@ -229,6 +235,7 @@ private fun PlayerCompactLayout(
             onStop = onStop,
             showAdvancedControls = showAdvancedControls,
             onToggleAdvanced = onToggleAdvanced,
+            onFullScreen = onFullScreen,
             windowSizeClass = windowSizeClass,
             isCompact = true
         )
@@ -292,6 +299,7 @@ private fun PlayerControlButtons(
     onStop: () -> Unit,
     showAdvancedControls: Boolean,
     onToggleAdvanced: () -> Unit,
+    onFullScreen: (() -> Unit)?,
     windowSizeClass: WindowSizeClass,
     isCompact: Boolean
 ) {
@@ -345,6 +353,18 @@ private fun PlayerControlButtons(
             containerColor = MaterialTheme.colorScheme.secondary,
             contentColor = MaterialTheme.colorScheme.onSecondary
         )
+        
+        // Fullscreen Button (only show if callback is provided)
+        if (onFullScreen != null) {
+            AppIconButton(
+                icon = Icons.Default.Fullscreen,
+                contentDescription = "Full Screen",
+                onClick = onFullScreen,
+                windowSizeClass = windowSizeClass,
+                containerColor = MaterialTheme.colorScheme.tertiary,
+                contentColor = MaterialTheme.colorScheme.onTertiary
+            )
+        }
     }
 }
 

@@ -59,6 +59,8 @@ fun PdfToVoiceScreen(
     viewModel: PdfToVoiceViewModel = viewModel(),
     onLogout: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    
     // Optimize state collection - combine all related states
     val state by viewModel.combinedState.collectAsState(initial = PdfToVoiceState())
     val isPlaying by viewModel.isPlaying.collectAsState()
@@ -71,29 +73,41 @@ fun PdfToVoiceScreen(
     // UI state - use rememberSaveable for configuration changes
     var showLanguageSelector by rememberSaveable { mutableStateOf(false) }
     
-    // Memoize heavy computations
+    // Enhanced memoization for better performance
     val textSegments = remember(state.extractedText) {
         if (state.extractedText.isBlank()) emptyList()
-        else state.extractedText.split(Regex("(?<=[.!?])\\s+|\\n"))
+        else state.extractedText
+            .splitToSequence(Regex("(?<=[.!?])\\s+|\\n"))
             .filter { it.isNotBlank() }
             .map { it.trim() }
+            .toList()
     }
     
+    // Optimized segment matching with caching
     val currentSegmentIndex = remember(state.currentlyReadingSegment, textSegments) {
-        if (state.currentlyReadingSegment.isBlank() || textSegments.isEmpty()) -1
-        else {
-            // Optimized matching with early exit
+        if (state.currentlyReadingSegment.isBlank() || textSegments.isEmpty()) return@remember -1
+        
+        val readingSegment = state.currentlyReadingSegment
+        
+        // Fast exact match first
+        textSegments.indexOfFirst { segment ->
+            segment.equals(readingSegment, ignoreCase = true)
+        }.takeIf { it >= 0 } ?: run {
+            // Substring matching
             textSegments.indexOfFirst { segment ->
-                segment.contains(state.currentlyReadingSegment, ignoreCase = true) ||
-                state.currentlyReadingSegment.contains(segment, ignoreCase = true)
+                segment.contains(readingSegment, ignoreCase = true) ||
+                readingSegment.contains(segment, ignoreCase = true)
             }.takeIf { it >= 0 } ?: run {
-                // Fallback to word matching only if exact match fails
-                val readingWords = state.currentlyReadingSegment.lowercase().split(Regex("\\s+"))
+                // Word-based matching as fallback
+                val readingWords = readingSegment.lowercase().split(Regex("\\s+"))
+                if (readingWords.size <= 2) return@run -1 // Skip very short segments
+                
                 textSegments.indexOfFirst { segment ->
                     val segmentWords = segment.lowercase().split(Regex("\\s+"))
-                    readingWords.count { word ->
+                    val matches = readingWords.count { word ->
                         segmentWords.any { it.contains(word) || word.contains(it) }
-                    } >= maxOf(1, readingWords.size / 2)
+                    }
+                    matches >= maxOf(2, readingWords.size / 2)
                 }
             }
         }
@@ -249,7 +263,18 @@ fun PdfToVoiceScreen(
                 },
                 onStop = { viewModel.stopReading() },
                 onSpeedChange = { viewModel.setSpeed(it) },
-                onPitchChange = { viewModel.setPitch(it) }
+                onPitchChange = { viewModel.setPitch(it) },
+                onFullScreen = {
+                    if (state.extractedText.isNotEmpty()) {
+                        val intent = com.example.pdftovoice.ui.activities.FullScreenReaderActivity.createIntent(
+                            context = context,
+                            pdfUri = state.selectedPdfFile?.uri?.toString(),
+                            pdfName = state.selectedPdfFile?.name,
+                            extractedText = state.extractedText
+                        )
+                        context.startActivity(intent)
+                    }
+                }
             )
         }
     }

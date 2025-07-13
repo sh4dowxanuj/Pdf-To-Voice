@@ -33,6 +33,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        
+        <!-- Full-screen reader activity for immersive reading experience -->
+        <activity
+            android:name=".ui.activities.FullScreenReaderActivity"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.PdfToVoice"
+            android:screenOrientation="unspecified"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
     </application>
 
 </manifest>

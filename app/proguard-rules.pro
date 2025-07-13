@@ -53,3 +53,19 @@
     public static int d(...);
     public static int e(...);
 }
+
+# Additional performance optimizations
+-optimizations !code/simplification/arithmetic,!code/simplification/cast,!field/*,!class/merging/*
+-optimizationpasses 5
+-allowaccessmodification
+-dontpreverify
+
+# Kotlin optimizations
+-keep class kotlin.** { *; }
+-keepclassmembers class **$WhenMappings {
+    <fields>;
+}
+
+# Coroutines optimizations
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}

@@ -54,12 +54,16 @@ class TtsManager(private val context: Context) {
     private var textSegments: List<String> = emptyList()
     private var currentSegmentIndex = 0
     
-    // Cache for processed segments to avoid reprocessing
-    private val segmentCache = ConcurrentHashMap<String, List<String>>()
+    // Enhanced LRU cache for processed segments to avoid reprocessing
+    private val segmentCache = object : LinkedHashMap<String, List<String>>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, List<String>>?): Boolean {
+            return size > MAX_CACHE_SIZE
+        }
+    }
     
     companion object {
-        private const val MAX_CACHE_SIZE = 10
-        private const val MAX_SEGMENT_LENGTH = 200 // Optimal for TTS
+        private const val MAX_CACHE_SIZE = 20 // Increased cache size for better performance
+        private const val MAX_SEGMENT_LENGTH = 150 // Optimized for faster TTS processing
         
         private val SUPPORTED_LANGUAGES = listOf(
             Language("en", "English", Locale.ENGLISH),
@@ -229,9 +233,13 @@ class TtsManager(private val context: Context) {
         // Check cache first for performance
         segmentCache[text]?.let { return it }
         
+        // Pre-calculate text hash for deduplication
+        val textHash = text.hashCode()
+        
         // Optimized text splitting for better TTS performance
         val segments = text
             .split(Regex("(?<=[.!?])\\s+"))
+            .asSequence() // Use sequence for lazy evaluation
             .map { it.trim() }
             .filter { it.isNotBlank() }
             .flatMap { segment ->
@@ -240,16 +248,14 @@ class TtsManager(private val context: Context) {
                     segment.chunked(MAX_SEGMENT_LENGTH) { chunk ->
                         val chunkStr = chunk.toString().trim()
                         if (!chunkStr.matches(Regex(".*[.!?]$"))) "$chunkStr." else chunkStr
-                    }
+                    }.asSequence()
                 } else {
-                    listOf(if (!segment.matches(Regex(".*[.!?]$"))) "$segment." else segment)
+                    sequenceOf(if (!segment.matches(Regex(".*[.!?]$"))) "$segment." else segment)
                 }
             }
+            .toList()
         
-        // Cache the result but limit cache size
-        if (segmentCache.size >= MAX_CACHE_SIZE) {
-            segmentCache.clear() // Simple cache eviction
-        }
+        // Cache the result with LRU eviction
         segmentCache[text] = segments
         
         return segments
