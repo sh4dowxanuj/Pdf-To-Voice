@@ -74,20 +74,35 @@ fun FullScreenReaderScreen(
     var showPlayerControls by remember { mutableStateOf(true) }
     var showSettings by remember { mutableStateOf(false) }
     
-    // Auto-hide controls after 3 seconds of inactivity
+    // Auto-hide controls after 5 seconds of inactivity (longer for better UX)
     LaunchedEffect(showControls) {
         if (showControls) {
-            delay(3000)
+            delay(5000)
             showControls = false
+            showPlayerControls = false
         }
     }
     
-    // Initialize with provided data
+    // Show controls when playback state changes
+    LaunchedEffect(isPlaying) {
+        showControls = true
+        showPlayerControls = true
+    }
+    
+    // Initialize with provided data and add debugging
     LaunchedEffect(initialExtractedText) {
         if (!initialExtractedText.isNullOrEmpty()) {
-            // Set the extracted text in the viewmodel if provided
+            android.util.Log.d("FullScreenReader", "Setting initial text: ${initialExtractedText.take(100)}...")
             viewModel.setExtractedText(initialExtractedText)
         }
+    }
+    
+    // Debug current state
+    LaunchedEffect(state.currentlyReadingSegment, isPlaying) {
+        android.util.Log.d("FullScreenReader", "State update - Playing: $isPlaying")
+        android.util.Log.d("FullScreenReader", "Current segment: '${state.currentlyReadingSegment}'")
+        android.util.Log.d("FullScreenReader", "Current word: '$currentWord' (index: $wordIndex)")
+        android.util.Log.d("FullScreenReader", "Text length: ${state.extractedText.length}")
     }
     
     // Responsive dimensions
@@ -108,7 +123,7 @@ fun FullScreenReaderScreen(
                 )
             }
     ) {
-        // Main content area with text
+        // Main content area with text - improved layout and spacing
         FullScreenTextContent(
             text = state.extractedText,
             currentSegment = state.currentlyReadingSegment,
@@ -120,8 +135,10 @@ fun FullScreenReaderScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(
-                    top = if (showControls) controlsHeight else 0.dp,
-                    bottom = if (showPlayerControls) controlsHeight else 0.dp
+                    top = if (showControls) controlsHeight + 8.dp else 8.dp,
+                    bottom = if (showPlayerControls) controlsHeight + 8.dp else 8.dp,
+                    start = 8.dp,
+                    end = 8.dp
                 )
         )
         
@@ -214,12 +231,13 @@ private fun TopControlsBar(
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-        shadowElevation = 8.dp
+        shadowElevation = 8.dp,
+        tonalElevation = 4.dp
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -231,11 +249,12 @@ private fun TopControlsBar(
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Close",
-                    tint = MaterialTheme.colorScheme.onSurface
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(if (isCompact) 20.dp else 24.dp)
                 )
             }
             
-            // Title
+            // Title with better text handling
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium.copy(
@@ -245,7 +264,9 @@ private fun TopControlsBar(
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 16.dp),
                 textAlign = TextAlign.Center
             )
             
@@ -257,7 +278,8 @@ private fun TopControlsBar(
                 Icon(
                     imageVector = Icons.Default.Settings,
                     contentDescription = "Settings",
-                    tint = MaterialTheme.colorScheme.onSurface
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(if (isCompact) 20.dp else 24.dp)
                 )
             }
         }
@@ -301,16 +323,24 @@ private fun FullScreenTextContent(
         return
     }
     
-    // Use the new SynchronizedTextDisplay with Spotify-style highlighting
-    SynchronizedTextDisplay(
-        text = text,
-        currentlyReadingSegment = currentSegment,
-        currentWord = currentWord,
-        wordIndex = wordIndex,
-        isPlaying = isPlaying,
-        windowSizeClass = windowSizeClass,
+    // Use the enhanced SynchronizedTextDisplay with improved highlighting
+    Box(
         modifier = modifier
-    )
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        SynchronizedTextDisplay(
+            text = text,
+            currentlyReadingSegment = currentSegment,
+            currentWord = currentWord,
+            wordIndex = wordIndex,
+            isPlaying = isPlaying,
+            windowSizeClass = windowSizeClass,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 8.dp)
+        )
+    }
 }
 
 @Composable
@@ -323,7 +353,8 @@ private fun MediaPlayerBottomControls(
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-        shadowElevation = 8.dp
+        shadowElevation = 8.dp,
+        tonalElevation = 4.dp
     ) {
         Column(
             modifier = Modifier
@@ -331,7 +362,7 @@ private fun MediaPlayerBottomControls(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.Center
         ) {
-            // Main controls row
+            // Main controls row with improved spacing
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -350,7 +381,7 @@ private fun MediaPlayerBottomControls(
                     )
                 }
                 
-                // Play/Pause button (larger)
+                // Play/Pause button (larger and more prominent)
                 FloatingActionButton(
                     onClick = { viewModel.togglePlayPause() },
                     modifier = Modifier.size(if (isCompact) 64.dp else 72.dp),
@@ -378,7 +409,7 @@ private fun MediaPlayerBottomControls(
                     )
                 }
                 
-                // Stop button
+                // Stop button with improved visibility
                 IconButton(
                     onClick = { viewModel.stopReading() },
                     modifier = Modifier.size(if (isCompact) 48.dp else 56.dp)
@@ -392,7 +423,7 @@ private fun MediaPlayerBottomControls(
                 }
             }
             
-            // Speed and progress indicator row
+            // Status indicator with improved spacing
             if (state.extractedText.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
@@ -400,7 +431,6 @@ private fun MediaPlayerBottomControls(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Reading indicator
                     if (viewModel.isPlaying()) {
                         ReadingIndicator()
                     } else {
