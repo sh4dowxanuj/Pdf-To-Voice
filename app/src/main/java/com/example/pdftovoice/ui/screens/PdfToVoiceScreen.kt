@@ -33,21 +33,23 @@ import com.example.pdftovoice.R
 import com.example.pdftovoice.tts.Language
 import com.example.pdftovoice.viewmodel.PdfToVoiceViewModel
 import com.example.pdftovoice.viewmodel.PdfToVoiceState
-import com.example.pdftovoice.ui.components.MusicPlayerControls
-import com.example.pdftovoice.ui.components.SynchronizedLyricsDisplay
-import com.example.pdftovoice.ui.responsive.ResponsiveDimensions.horizontalPadding
-import com.example.pdftovoice.ui.responsive.ResponsiveDimensions.verticalPadding
-import com.example.pdftovoice.ui.responsive.ResponsiveDimensions.sectionSpacing
-import com.example.pdftovoice.ui.responsive.ResponsiveDimensions.musicPlayerHeight
-import com.example.pdftovoice.ui.responsive.ResponsiveDimensions.cornerRadius
-import com.example.pdftovoice.ui.responsive.ResponsiveDimensions.itemSpacing
-import com.example.pdftovoice.ui.responsive.ResponsiveDimensions.cardElevation
-import com.example.pdftovoice.ui.responsive.ResponsiveDimensions.buttonSize
-import com.example.pdftovoice.ui.responsive.ResponsiveLayout.contentMaxWidth
-import com.example.pdftovoice.ui.responsive.ResponsiveLayout.shouldUseDoubleColumn
-import com.example.pdftovoice.ui.responsive.ResponsiveLayout.isLandscape
-import com.example.pdftovoice.ui.responsive.ResponsiveLayout.isCompact
-import com.example.pdftovoice.ui.responsive.ResponsiveTypography.scaleFactor
+import com.example.pdftovoice.ui.components.common.*
+import com.example.pdftovoice.ui.components.player.MediaPlayerControls
+import com.example.pdftovoice.ui.components.reader.SynchronizedTextDisplay
+import com.example.pdftovoice.ui.components.reader.FullScreenTextPanel
+import com.example.pdftovoice.ui.system.ResponsiveDimensions.horizontalPadding
+import com.example.pdftovoice.ui.system.ResponsiveDimensions.verticalPadding
+import com.example.pdftovoice.ui.system.ResponsiveDimensions.sectionSpacing
+import com.example.pdftovoice.ui.system.ResponsiveDimensions.cornerRadius
+import com.example.pdftovoice.ui.system.ResponsiveDimensions.itemSpacing
+import com.example.pdftovoice.ui.system.ResponsiveDimensions.buttonSize
+import com.example.pdftovoice.ui.system.ResponsiveDimensions.cardElevation
+import com.example.pdftovoice.ui.system.ResponsiveDimensions.musicPlayerHeight
+import com.example.pdftovoice.ui.system.ResponsiveLayout.contentMaxWidth
+import com.example.pdftovoice.ui.system.ResponsiveLayout.shouldUseDoubleColumn
+import com.example.pdftovoice.ui.system.ResponsiveLayout.isCompact
+import com.example.pdftovoice.ui.system.ResponsiveLayout.isLandscape
+import com.example.pdftovoice.ui.system.ResponsiveTypography.scaleFactor
 import com.example.pdftovoice.ui.responsive.ResponsiveGrid.iconSize
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -224,13 +226,13 @@ fun PdfToVoiceScreen(
             }
         }
         
-        // Bottom Music Player Controls
+        // Bottom Media Player Controls
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
         ) {
-            MusicPlayerControls(
+            MediaPlayerControls(
                 windowSizeClass = windowSizeClass,
                 isPlaying = isPlaying,
                 isPaused = isPaused,
@@ -567,10 +569,11 @@ private fun TextDisplaySection(
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
                 
-                SynchronizedLyricsDisplay(
+                SynchronizedTextDisplay(
                     text = state.extractedText,
                     currentlyReadingSegment = state.currentlyReadingSegment,
                     isPlaying = isPlaying,
+                    windowSizeClass = windowSizeClass,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -580,20 +583,12 @@ private fun TextDisplaySection(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(cornerRadius),
-            elevation = CardDefaults.cardElevation(defaultElevation = windowSizeClass.cardElevation())
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(sectionSpacing),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                CircularProgressIndicator()
-                Text(
-                    text = stringResource(R.string.processing_pdf),
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center
-                )
-            }
+            AppLoadingIndicator(
+                text = stringResource(R.string.processing_pdf),
+                modifier = Modifier.padding(sectionSpacing)
+            )
         }
     } else if (state.selectedPdfFile != null) {
         // Ready to Process
@@ -626,20 +621,11 @@ private fun TextDisplaySection(
     
     // Error Message
     state.errorMessage?.let { error ->
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.errorContainer
-            ),
-            shape = RoundedCornerShape(cornerRadius)
-        ) {
-            Text(
-                text = error,
-                modifier = Modifier.padding(sectionSpacing),
-                color = MaterialTheme.colorScheme.onErrorContainer,
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
+        AppErrorCard(
+            error = error,
+            windowSizeClass = windowSizeClass,
+            onRetry = { viewModel.retryExtraction() }
+        )
     }
 }
 

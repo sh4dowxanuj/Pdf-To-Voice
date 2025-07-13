@@ -16,16 +16,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.pdftovoice.ui.theme.GoogleBlue
-import com.example.pdftovoice.ui.responsive.ResponsiveDimensions.horizontalPadding
-import com.example.pdftovoice.ui.responsive.ResponsiveDimensions.verticalPadding
-import com.example.pdftovoice.ui.responsive.ResponsiveDimensions.sectionSpacing
-import com.example.pdftovoice.ui.responsive.ResponsiveDimensions.mainButtonSize
-import com.example.pdftovoice.ui.responsive.ResponsiveDimensions.cornerRadius
-import com.example.pdftovoice.ui.responsive.ResponsiveLayout.contentMaxWidth
-import com.example.pdftovoice.ui.responsive.ResponsiveLayout.isCompact
-import com.example.pdftovoice.ui.responsive.ResponsiveTypography.scaleFactor
-import com.example.pdftovoice.ui.components.SynchronizedLyricsDisplay
-import com.example.pdftovoice.ui.components.TextHighlightingPanel
+import com.example.pdftovoice.ui.components.common.AppButton
+import com.example.pdftovoice.ui.components.reader.SynchronizedTextDisplay
+import com.example.pdftovoice.ui.system.ResponsiveDimensions.horizontalPadding
+import com.example.pdftovoice.ui.system.ResponsiveDimensions.verticalPadding
+import com.example.pdftovoice.ui.system.ResponsiveDimensions.sectionSpacing
+import com.example.pdftovoice.ui.system.ResponsiveDimensions.mainButtonSize
+import com.example.pdftovoice.ui.system.ResponsiveDimensions.cornerRadius
+import com.example.pdftovoice.ui.system.ResponsiveLayout.contentMaxWidth
+import com.example.pdftovoice.ui.system.ResponsiveLayout.isCompact
+import com.example.pdftovoice.ui.system.ResponsiveTypography.scaleFactor
 
 @Composable
 fun HomeScreen(
@@ -382,11 +382,11 @@ The application supports PDF files of any size and automatically breaks them int
                     
                     Spacer(modifier = Modifier.height(sectionSpacing))
                     
-                    // Synchronized lyrics display with autoscrolling
-                    SynchronizedLyricsDisplay(
+                    SynchronizedTextDisplay(
                         text = displayText,
                         currentlyReadingSegment = currentSegment,
                         isPlaying = isCurrentlyPlaying,
+                        windowSizeClass = windowSizeClass,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -395,10 +395,13 @@ The application supports PDF files of any size and automatically breaks them int
     }
     
     // Fullscreen Text Panel
-    TextHighlightingPanel(
-        text = displayText,
-        currentlyReadingSegment = currentSegment,
-        isVisible = showFullscreenText,
-        onDismiss = { showFullscreenText = false }
-    )
+    if (showFullscreenText) {
+        SynchronizedTextDisplay(
+            text = displayText,
+            currentlyReadingSegment = currentSegment,
+            isPlaying = isCurrentlyPlaying,
+            windowSizeClass = windowSizeClass,
+            modifier = Modifier.fillMaxSize()
+        )
+    }
 }
