@@ -172,7 +172,7 @@ fun AppIconButton(
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            modifier = Modifier.size(iconSize * 0.6f)
+            modifier = Modifier.size(iconSize * 0.75f)
         )
     }
 }

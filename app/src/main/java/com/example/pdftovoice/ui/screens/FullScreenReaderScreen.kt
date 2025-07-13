@@ -78,7 +78,7 @@ fun FullScreenReaderScreen(
     LaunchedEffect(initialExtractedText) {
         if (!initialExtractedText.isNullOrEmpty()) {
             // Set the extracted text in the viewmodel if provided
-            // This would require adding a method to set text directly
+            viewModel.setExtractedText(initialExtractedText)
         }
     }
     
@@ -390,7 +390,8 @@ private fun MediaPlayerBottomControls(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.Center
         ) {
             // Main controls row
             Row(
@@ -401,51 +402,76 @@ private fun MediaPlayerBottomControls(
                 // Previous/Skip backward
                 IconButton(
                     onClick = { /* TODO: Implement previous segment */ },
-                    modifier = Modifier.size(if (isCompact) 40.dp else 48.dp)
+                    modifier = Modifier.size(if (isCompact) 48.dp else 56.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.SkipPrevious,
                         contentDescription = "Previous",
-                        tint = MaterialTheme.colorScheme.onSurface
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(if (isCompact) 24.dp else 28.dp)
                     )
                 }
                 
                 // Play/Pause button (larger)
                 FloatingActionButton(
                     onClick = { viewModel.togglePlayPause() },
-                    modifier = Modifier.size(if (isCompact) 56.dp else 64.dp),
-                    containerColor = MaterialTheme.colorScheme.primary
+                    modifier = Modifier.size(if (isCompact) 64.dp else 72.dp),
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp)
                 ) {
                     Icon(
                         imageVector = if (viewModel.isPlaying()) Icons.Default.Pause else Icons.Default.PlayArrow,
                         contentDescription = if (viewModel.isPlaying()) "Pause" else "Play",
                         tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(if (isCompact) 28.dp else 32.dp)
+                        modifier = Modifier.size(if (isCompact) 32.dp else 36.dp)
                     )
                 }
                 
                 // Next/Skip forward
                 IconButton(
                     onClick = { /* TODO: Implement next segment */ },
-                    modifier = Modifier.size(if (isCompact) 40.dp else 48.dp)
+                    modifier = Modifier.size(if (isCompact) 48.dp else 56.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.SkipNext,
                         contentDescription = "Next",
-                        tint = MaterialTheme.colorScheme.onSurface
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(if (isCompact) 24.dp else 28.dp)
                     )
                 }
                 
                 // Stop button
                 IconButton(
                     onClick = { viewModel.stopReading() },
-                    modifier = Modifier.size(if (isCompact) 40.dp else 48.dp)
+                    modifier = Modifier.size(if (isCompact) 48.dp else 56.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Stop,
                         contentDescription = "Stop",
-                        tint = MaterialTheme.colorScheme.onSurface
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(if (isCompact) 24.dp else 28.dp)
                     )
+                }
+            }
+            
+            // Speed and progress indicator row
+            if (state.extractedText.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Reading indicator
+                    if (viewModel.isPlaying()) {
+                        ReadingIndicator()
+                    } else {
+                        Text(
+                            text = "Ready to play",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                    }
                 }
             }
         }
