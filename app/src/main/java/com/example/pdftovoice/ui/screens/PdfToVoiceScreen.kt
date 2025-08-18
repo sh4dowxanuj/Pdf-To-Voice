@@ -84,7 +84,7 @@ fun PdfToVoiceScreen(
     }
     
     // Optimized segment matching with caching
-    val currentSegmentIndex = remember(state.currentlyReadingSegment, textSegments) {
+    val _currentSegmentIndex = remember(state.currentlyReadingSegment, textSegments) {
         if (state.currentlyReadingSegment.isBlank() || textSegments.isEmpty()) return@remember -1
         
         val readingSegment = state.currentlyReadingSegment
@@ -136,7 +136,7 @@ fun PdfToVoiceScreen(
     val verticalPadding = windowSizeClass.verticalPadding()
     val sectionSpacing = windowSizeClass.sectionSpacing()
     val musicPlayerHeight = windowSizeClass.musicPlayerHeight()
-    val cornerRadius = windowSizeClass.cornerRadius()
+    val _cornerRadius = windowSizeClass.cornerRadius() // reserved for shape adjustments
     val contentMaxWidth = windowSizeClass.contentMaxWidth()
     
     Box(
@@ -448,7 +448,7 @@ private fun LanguageSelectionDialog(
         confirmButton = {
             TextButton(onClick = onDismiss) {
                 Text(
-                    "OK",
+                    text = stringResource(id = R.string.ok_button),
                     fontSize = (14 * scaleFactor).sp
                 )
             }
@@ -494,7 +494,7 @@ private fun FileSelectionSection(
                         modifier = Modifier.weight(1f),
                         enabled = !state.isLoading
                     ) {
-                        Icon(Icons.Default.FileOpen, contentDescription = null)
+                        Icon(Icons.Default.FileOpen, contentDescription = stringResource(R.string.choose_file))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(stringResource(R.string.choose_file))
                     }
@@ -505,7 +505,7 @@ private fun FileSelectionSection(
                             enabled = !state.isLoading,
                             modifier = Modifier.weight(0.3f)
                         ) {
-                            Icon(Icons.Default.Clear, contentDescription = null)
+                            Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.clear_selection))
                         }
                     }
                 }
@@ -516,7 +516,7 @@ private fun FileSelectionSection(
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !state.isLoading
                 ) {
-                    Icon(Icons.Default.FileOpen, contentDescription = null)
+                    Icon(Icons.Default.FileOpen, contentDescription = stringResource(R.string.choose_file))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(stringResource(R.string.choose_file))
                 }
@@ -527,9 +527,9 @@ private fun FileSelectionSection(
                         enabled = !state.isLoading,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.Clear, contentDescription = null)
+                        Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.clear_selection))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Clear Selection")
+                        Text(androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.clear_selection))
                     }
                 }
             }
@@ -548,12 +548,20 @@ private fun FileSelectionSection(
                     ) {
                         val selectedFile = state.selectedPdfFile
                         Text(
-                            text = "Selected: ${selectedFile?.name ?: "Unknown"}",
+                            text = stringResource(
+                                id = R.string.selected_file_label,
+                                selectedFile?.name ?: stringResource(id = R.string.unknown_label)
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium
                         )
                         Text(
-                            text = "Size: ${selectedFile?.size?.let { "${it / 1024} KB" } ?: "Unknown"}",
+                            text = stringResource(
+                                id = R.string.file_size_label,
+                                selectedFile?.size?.let { size ->
+                                    stringResource(id = R.string.kilobytes_format, size / 1024)
+                                } ?: stringResource(id = R.string.unknown_label)
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -624,13 +632,13 @@ private fun TextDisplaySection(
             shape = RoundedCornerShape(cornerRadius),
             elevation = CardDefaults.cardElevation(defaultElevation = windowSizeClass.cardElevation())
         ) {
-            Column(
+                Column(
                 modifier = Modifier.padding(sectionSpacing),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Ready to process PDF",
+                    text = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.ready_to_process_pdf),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -638,9 +646,9 @@ private fun TextDisplaySection(
                     onClick = { viewModel.retryExtraction() },
                     enabled = !state.isLoading
                 ) {
-                    Icon(Icons.Default.TextFields, contentDescription = null)
+                    Icon(Icons.Default.TextFields, contentDescription = stringResource(R.string.extract_text))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Extract Text")
+                    Text(androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.extract_text))
                 }
             }
         }

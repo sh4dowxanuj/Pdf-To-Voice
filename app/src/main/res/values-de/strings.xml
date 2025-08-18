@@ -11,7 +11,7 @@
     <!-- PDF Processing -->
     <string name="extracted_text">Extrahierter Text</string>
     <string name="no_text_extracted">Kein Text aus PDF extrahiert</string>
-    <string name="processing_pdf">PDF wird verarbeitet...</string>
+    <string name="processing_pdf">PDF wird verarbeitet…</string>
     <string name="pdf_processed_successfully">PDF erfolgreich verarbeitet</string>
     
     <!-- TTS Controls -->
@@ -39,6 +39,20 @@
     <string name="dont_have_account">Haben Sie noch kein Konto?</string>
     <string name="sign_in_with_google">Mit Google anmelden</string>
     <string name="or_continue_with">oder fortfahren mit</string>
+    <string name="or">oder</string>
+    <string name="full_name">Vollständiger Name</string>
+    <string name="enter_your_full_name">Geben Sie Ihren vollständigen Namen ein</string>
+    <string name="enter_your_email">Geben Sie Ihre E-Mail ein</string>
+    <string name="enter_your_password">Geben Sie Ihr Passwort ein</string>
+    <string name="confirm_your_password">Bestätigen Sie Ihr Passwort</string>
+    <string name="sign_up_to_get_started">Registrieren, um zu beginnen</string>
+    <string name="sign_up_with_google">Mit Google registrieren</string>
+    <string name="signing_in">Anmeldung läuft…</string>
+    <string name="creating_account">Konto wird erstellt…</string>
+    <string name="fill_in_all_fields">Bitte alle Felder ausfüllen</string>
+    <string name="back">Zurück</string>
+    <string name="google_sign_in_failed">Google-Anmeldung fehlgeschlagen</string>
+    <string name="google_sign_in_cancelled">Google-Anmeldung wurde abgebrochen</string>
     
     <!-- Error Messages -->
     <string name="error_occurred">Ein Fehler ist aufgetreten</string>
@@ -59,4 +73,46 @@
     <string name="advanced_controls">Erweiterte Steuerung</string>
     <string name="show_controls">Steuerung anzeigen</string>
     <string name="hide_controls">Steuerung ausblenden</string>
+    <string name="ok_button">OK</string>
+    <string name="welcome_message">Willkommen bei PDF zu Sprache!</string>
+    <string name="start_reading_pdfs">Beginnen Sie, PDFs zu lesen</string>
+    <string name="clear_selection">Auswahl löschen</string>
+    <string name="ready_to_process_pdf">Bereit, PDF zu verarbeiten</string>
+    <string name="extract_text">Text extrahieren</string>
+    <string name="pdf_reader_title">PDF-Reader</string>
+    <string name="no_text_available">Kein Text verfügbar</string>
+    <string name="fullscreen_text">Vollbildtext</string>
+    <string name="extracted_text_title">Extrahierter Text</string>
+    <string name="no_text_available_short">Kein Text verfügbar</string>
+    <string name="select_pdf_to_extract">Wählen Sie eine PDF-Datei, um Text zu extrahieren und anzuzeigen</string>
+    <string name="no_text_available_message">Kein Text verfügbar</string>
+    <string name="reading_aloud">Laut vorlesen…</string>
+    <string name="currently_reading">Aktuell liest</string>
+    <string name="error_label">Fehler</string>
+    <string name="retry">Erneut versuchen</string>
+    <string name="reading_progress">Lese-Fortschritt</string>
+    <string name="reading_settings">Leseeinstellungen</string>
+    <string name="ready_to_play">Bereit zum Abspielen</string>
+    <string name="speed_label_format">Geschwindigkeit: %1$.1fx</string>
+    <string name="pitch_label_format">Tonhöhe: %1$.1fx</string>
+    <string name="done">Fertig</string>
+    <string name="close">Schließen</string>
+    <string name="previous">Zurück</string>
+    <string name="next">Weiter</string>
+    <string name="open_in_fullscreen">Im Vollbild öffnen</string>
+    <string name="reading_in_progress_autoscroll">Lesen läuft mit automatisch scrollenden Hervorhebungen</string>
+    <string name="show_password">Passwort anzeigen</string>
+    <string name="hide_password">Passwort ausblenden</string>
+    <string name="no_file_selected">Keine Datei ausgewählt</string>
+    <string name="playing">Wird abgespielt…</string>
+    <string name="selected_file_label">Ausgewählt: %1$s</string>
+    <string name="file_size_label">Größe: %1$s</string>
+    <string name="unknown_label">Unbekannt</string>
+    <string name="kilobytes_format">%1$d KB</string>
+    
+    <!-- Plurals -->
+    <plurals name="words">
+        <item quantity="one">%d Wort</item>
+        <item quantity="other">%d Wörter</item>
+    </plurals>
 </resources>

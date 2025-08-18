@@ -24,7 +24,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.pdftovoice.R
 import com.example.pdftovoice.ui.theme.GoogleBlue
 import com.example.pdftovoice.ui.components.ResponsiveTextField
 import com.example.pdftovoice.ui.components.ResponsiveButton
@@ -45,12 +47,12 @@ fun SignUpScreen(
     onSignUpSuccess: () -> Unit,
     viewModel: AuthViewModel = viewModel()
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
-    var confirmPasswordVisible by remember { mutableStateOf(false) }
+    // Password field visibility handled within component
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
 
@@ -85,7 +87,7 @@ fun SignUpScreen(
             IconButton(onClick = onNavigateToLogin) {
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = stringResource(id = R.string.back),
                     tint = GoogleBlue
                 )
             }
@@ -95,7 +97,7 @@ fun SignUpScreen(
         
         // Title
         Text(
-            text = "Create Account",
+            text = stringResource(id = R.string.create_account),
             fontSize = if (windowSizeClass.isCompact()) 28.sp else 32.sp,
             fontWeight = FontWeight.Bold,
             color = GoogleBlue,
@@ -105,7 +107,7 @@ fun SignUpScreen(
         Spacer(modifier = Modifier.height(verticalPadding / 2))
         
         Text(
-            text = "Sign up to get started",
+            text = stringResource(id = R.string.sign_up_to_get_started),
             fontSize = (if (windowSizeClass.isCompact()) 14f else 16f * windowSizeClass.scaleFactor()).sp,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
             textAlign = TextAlign.Center
@@ -117,49 +119,49 @@ fun SignUpScreen(
         ResponsiveTextField(
             value = fullName,
             onValueChange = { fullName = it },
-            label = "Full Name",
+            label = stringResource(id = R.string.full_name),
             windowSizeClass = windowSizeClass,
             leadingIcon = Icons.Default.Person,
             modifier = Modifier.fillMaxWidth(),
-            placeholder = "Enter your full name"
+            placeholder = stringResource(id = R.string.enter_your_full_name)
         )
         
         // Email Field
         ResponsiveTextField(
             value = email,
             onValueChange = { email = it },
-            label = "Email",
+            label = stringResource(id = R.string.email),
             windowSizeClass = windowSizeClass,
             leadingIcon = Icons.Default.Email,
             keyboardType = KeyboardType.Email,
             modifier = Modifier.fillMaxWidth(),
-            placeholder = "Enter your email"
+            placeholder = stringResource(id = R.string.enter_your_email)
         )
         
         // Password Field
         ResponsiveTextField(
             value = password,
             onValueChange = { password = it },
-            label = "Password",
+            label = stringResource(id = R.string.password),
             windowSizeClass = windowSizeClass,
             leadingIcon = Icons.Default.Lock,
             keyboardType = KeyboardType.Password,
             isPassword = true,
             modifier = Modifier.fillMaxWidth(),
-            placeholder = "Enter your password"
+            placeholder = stringResource(id = R.string.enter_your_password)
         )
         
         // Confirm Password Field
         ResponsiveTextField(
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
-            label = "Confirm Password",
+            label = stringResource(id = R.string.confirm_password),
             windowSizeClass = windowSizeClass,
             leadingIcon = Icons.Default.Lock,
             keyboardType = KeyboardType.Password,
             isPassword = true,
             modifier = Modifier.fillMaxWidth(),
-            placeholder = "Confirm your password",
+            placeholder = stringResource(id = R.string.confirm_your_password),
             isError = errorMessage.isNotEmpty(),
             errorMessage = if (errorMessage.isNotEmpty()) errorMessage else null
         )
@@ -169,27 +171,27 @@ fun SignUpScreen(
             onClick = {
                 when {
                     fullName.isEmpty() || email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty() -> {
-                        errorMessage = "Please fill in all fields"
+                        errorMessage = context.getString(R.string.fill_in_all_fields)
                     }
                     password != confirmPassword -> {
-                        errorMessage = "Passwords don't match"
+                        errorMessage = context.getString(R.string.passwords_dont_match)
                     }
                     password.length < 6 -> {
-                        errorMessage = "Password must be at least 6 characters"
+                        errorMessage = context.getString(R.string.password_too_short)
                     }
                     else -> {
                         isLoading = true
                         viewModel.signUp(email, password) { success, error ->
                             isLoading = false
                             if (!success) {
-                                errorMessage = error ?: "Sign up failed"
+                                errorMessage = error ?: context.getString(R.string.signup_failed)
                             }
                         }
                     }
                 }
             },
             windowSizeClass = windowSizeClass,
-            text = if (isLoading) "Creating account..." else "Sign Up",
+            text = if (isLoading) stringResource(id = R.string.creating_account) else stringResource(id = R.string.sign_up),
             enabled = !isLoading,
             colors = ButtonDefaults.buttonColors(containerColor = GoogleBlue),
             modifier = Modifier.fillMaxWidth()
@@ -204,7 +206,7 @@ fun SignUpScreen(
         ) {
             Divider(modifier = Modifier.weight(1f))
             Text(
-                text = "or",
+                text = stringResource(id = R.string.or),
                 modifier = Modifier.padding(horizontal = sectionSpacing),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 fontSize = (14 * windowSizeClass.scaleFactor()).sp
@@ -230,7 +232,7 @@ fun SignUpScreen(
                 )
                 Spacer(modifier = Modifier.width(sectionSpacing))
                 Text(
-                    text = "Sign up with Google",
+                    text = stringResource(id = R.string.sign_up_with_google),
                     fontSize = (16 * windowSizeClass.scaleFactor()).sp,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface
@@ -246,14 +248,15 @@ fun SignUpScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Already have an account? ",
+                text = stringResource(id = R.string.already_have_account),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 fontSize = (14 * windowSizeClass.scaleFactor()).sp
             )
+            Spacer(modifier = Modifier.width(4.dp))
             ResponsiveTextButton(
                 onClick = onNavigateToLogin,
                 windowSizeClass = windowSizeClass,
-                text = "Sign In"
+                text = stringResource(id = R.string.sign_in)
             )
         }
     }

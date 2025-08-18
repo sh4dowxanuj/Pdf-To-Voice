@@ -11,7 +11,7 @@
     <!-- PDF Processing -->
     <string name="extracted_text">Texte extrait</string>
     <string name="no_text_extracted">Aucun texte extrait du PDF</string>
-    <string name="processing_pdf">Traitement du PDF...</string>
+    <string name="processing_pdf">Traitement du PDF…</string>
     <string name="pdf_processed_successfully">PDF traité avec succès</string>
     
     <!-- TTS Controls -->
@@ -39,6 +39,20 @@
     <string name="dont_have_account">Vous n\'avez pas de compte?</string>
     <string name="sign_in_with_google">Se connecter avec Google</string>
     <string name="or_continue_with">ou continuer avec</string>
+    <string name="or">ou</string>
+    <string name="full_name">Nom complet</string>
+    <string name="enter_your_full_name">Entrez votre nom complet</string>
+    <string name="enter_your_email">Entrez votre email</string>
+    <string name="enter_your_password">Entrez votre mot de passe</string>
+    <string name="confirm_your_password">Confirmez votre mot de passe</string>
+    <string name="sign_up_to_get_started">Inscrivez-vous pour commencer</string>
+    <string name="sign_up_with_google">S\'inscrire avec Google</string>
+    <string name="signing_in">Connexion en cours…</string>
+    <string name="creating_account">Création du compte…</string>
+    <string name="fill_in_all_fields">Veuillez remplir tous les champs</string>
+    <string name="back">Retour</string>
+    <string name="google_sign_in_failed">Échec de la connexion Google</string>
+    <string name="google_sign_in_cancelled">La connexion Google a été annulée</string>
     
     <!-- Error Messages -->
     <string name="error_occurred">Une erreur est survenue</string>
@@ -59,4 +73,46 @@
     <string name="advanced_controls">Contrôles avancés</string>
     <string name="show_controls">Afficher les contrôles</string>
     <string name="hide_controls">Masquer les contrôles</string>
+    <string name="ok_button">OK</string>
+    <string name="welcome_message">Bienvenue dans PDF vers Voix !</string>
+    <string name="start_reading_pdfs">Commencez à lire des PDF</string>
+    <string name="clear_selection">Effacer la sélection</string>
+    <string name="ready_to_process_pdf">Prêt à traiter le PDF</string>
+    <string name="extract_text">Extraire le texte</string>
+    <string name="pdf_reader_title">Lecteur PDF</string>
+    <string name="no_text_available">Aucun texte disponible</string>
+    <string name="fullscreen_text">Texte plein écran</string>
+    <string name="extracted_text_title">Texte extrait</string>
+    <string name="no_text_available_short">Aucun texte disponible</string>
+    <string name="select_pdf_to_extract">Sélectionnez un fichier PDF pour extraire et afficher le texte</string>
+    <string name="no_text_available_message">Aucun texte disponible</string>
+    <string name="reading_aloud">Lecture à voix haute…</string>
+    <string name="currently_reading">Lecture en cours</string>
+    <string name="error_label">Erreur</string>
+    <string name="retry">Réessayer</string>
+    <string name="reading_progress">Progression de lecture</string>
+    <string name="reading_settings">Paramètres de lecture</string>
+    <string name="ready_to_play">Prêt à lire</string>
+    <string name="speed_label_format">Vitesse : %1$.1fx</string>
+    <string name="pitch_label_format">Tonalité : %1$.1fx</string>
+    <string name="done">Terminé</string>
+    <string name="close">Fermer</string>
+    <string name="previous">Précédent</string>
+    <string name="next">Suivant</string>
+    <string name="open_in_fullscreen">Ouvrir en plein écran</string>
+    <string name="reading_in_progress_autoscroll">Lecture en cours avec surlignage défilant automatiquement</string>
+    <string name="show_password">Afficher le mot de passe</string>
+    <string name="hide_password">Masquer le mot de passe</string>
+    <string name="no_file_selected">Aucun fichier sélectionné</string>
+    <string name="playing">Lecture…</string>
+    <string name="selected_file_label">Sélectionné : %1$s</string>
+    <string name="file_size_label">Taille : %1$s</string>
+    <string name="unknown_label">Inconnu</string>
+    <string name="kilobytes_format">%1$d Ko</string>
+    
+    <!-- Plurals -->
+    <plurals name="words">
+        <item quantity="one">%d mot</item>
+        <item quantity="other">%d mots</item>
+    </plurals>
 </resources>

@@ -141,12 +141,12 @@ fun SynchronizedLyricsDisplay(
             ) {
                 Icon(
                     Icons.Default.TextFields,
-                    contentDescription = null,
+                    contentDescription = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.reading_progress),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
                 )
                 Text(
-                    text = "Reading Progress",
+                    text = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.reading_progress),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -215,22 +215,22 @@ fun SynchronizedLyricsDisplay(
                     ) {
                         Icon(
                             Icons.Default.TextFields,
-                            contentDescription = null,
+                            contentDescription = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.no_text_available_short),
                             modifier = Modifier.size(64.dp),
                             tint = MaterialTheme.colorScheme.outline
                         )
-                        Text(
-                            text = "No text available",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.outline,
-                            textAlign = TextAlign.Center
-                        )
-                        Text(
-                            text = "Select a PDF file to start reading",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.outline,
-                            textAlign = TextAlign.Center
-                        )
+                                Text(
+                                    text = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.no_text_available_message),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.outline,
+                                    textAlign = TextAlign.Center
+                                )
+                                Text(
+                                    text = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.select_pdf_to_extract),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.outline,
+                                    textAlign = TextAlign.Center
+                                )
                     }
                 }
             }

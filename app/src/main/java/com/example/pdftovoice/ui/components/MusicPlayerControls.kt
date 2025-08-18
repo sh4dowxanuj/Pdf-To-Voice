@@ -20,6 +20,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.example.pdftovoice.R
 import androidx.compose.ui.unit.sp
 import com.example.pdftovoice.ui.responsive.ResponsiveDimensions.horizontalPadding
 import com.example.pdftovoice.ui.responsive.ResponsiveDimensions.verticalPadding
@@ -51,7 +53,7 @@ fun MusicPlayerControls(
     
     // Responsive dimensions
     val horizontalPadding = windowSizeClass.horizontalPadding()
-    val verticalPadding = windowSizeClass.verticalPadding()
+    // Removed unused vertical padding to reduce warnings
     val buttonSize = windowSizeClass.buttonSize()
     val mainButtonSize = windowSizeClass.mainButtonSize()
     val cornerRadius = windowSizeClass.cornerRadius()
@@ -210,7 +212,7 @@ private fun NowPlayingInfo(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
-                text = fileName ?: "No file selected",
+                text = fileName ?: stringResource(id = R.string.no_file_selected),
                 style = if (isCompact) {
                     MaterialTheme.typography.titleSmall
                 } else {
@@ -232,7 +234,7 @@ private fun NowPlayingInfo(
                 )
             } else {
                 Text(
-                    text = if (isPlaying) "Playing..." else "Ready to play",
+                    text = if (isPlaying) stringResource(id = R.string.playing) else stringResource(id = R.string.ready_to_play),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
@@ -257,7 +259,7 @@ private fun PlayingStatusIndicator(pulseAlpha: Float) {
                 )
         )
         Text(
-            text = "Reading aloud...",
+            text = stringResource(id = R.string.reading_aloud),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Medium
@@ -291,7 +293,7 @@ private fun MainControlButtons(
         // Stop Button
         PlayerControlButton(
             icon = Icons.Default.Stop,
-            contentDescription = "Stop",
+            contentDescription = stringResource(id = R.string.stop),
             onClick = onStop,
             size = buttonSize,
             containerColor = MaterialTheme.colorScheme.error,
@@ -305,9 +307,9 @@ private fun MainControlButtons(
                 else -> Icons.Default.PlayArrow
             },
             contentDescription = when {
-                isPlaying -> "Pause"
-                isPaused -> "Resume"
-                else -> "Play"
+                isPlaying -> stringResource(id = R.string.pause)
+                isPaused -> stringResource(id = R.string.resume)
+                else -> stringResource(id = R.string.play)
             },
             onClick = onPlayPause,
             size = mainButtonSize,
@@ -319,7 +321,7 @@ private fun MainControlButtons(
         // Settings Button
         PlayerControlButton(
             icon = if (showAdvancedControls) Icons.Default.ExpandLess else Icons.Default.Settings,
-            contentDescription = "Settings",
+            contentDescription = stringResource(id = R.string.reading_settings),
             onClick = onToggleAdvanced,
             size = buttonSize,
             containerColor = MaterialTheme.colorScheme.secondary,
@@ -357,7 +359,7 @@ private fun AdvancedControls(
                 ) {
                     // Speed Control
                     ControlSlider(
-                        label = "Speed",
+                        label = stringResource(id = R.string.speed),
                         value = speed,
                         valueRange = 0.5f..2.0f,
                         onValueChange = onSpeedChange,
@@ -366,7 +368,7 @@ private fun AdvancedControls(
                     
                     // Pitch Control
                     ControlSlider(
-                        label = "Pitch",
+                        label = stringResource(id = R.string.pitch),
                         value = pitch,
                         valueRange = 0.5f..2.0f,
                         onValueChange = onPitchChange,
@@ -381,7 +383,7 @@ private fun AdvancedControls(
                 ) {
                     // Speed Control
                     ControlSlider(
-                        label = "Speed",
+                        label = stringResource(id = R.string.speed),
                         value = speed,
                         valueRange = 0.5f..2.0f,
                         onValueChange = onSpeedChange,
@@ -391,7 +393,7 @@ private fun AdvancedControls(
                     
                     // Pitch Control
                     ControlSlider(
-                        label = "Pitch",
+                        label = stringResource(id = R.string.pitch),
                         value = pitch,
                         valueRange = 0.5f..2.0f,
                         onValueChange = onPitchChange,
@@ -457,8 +459,8 @@ private fun PlayerControlButton(
     size: androidx.compose.ui.unit.Dp,
     containerColor: Color = MaterialTheme.colorScheme.primary,
     contentColor: Color = MaterialTheme.colorScheme.onPrimary,
-    iconSize: androidx.compose.ui.unit.Dp = size * 0.6f,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    iconSize: androidx.compose.ui.unit.Dp = size * 0.6f
 ) {
     FilledIconButton(
         onClick = onClick,

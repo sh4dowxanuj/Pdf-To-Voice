@@ -33,6 +33,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import com.example.pdftovoice.R
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -62,7 +65,7 @@ fun TextDisplay(
     wordIndex: Int = -1
 ) {
     val cornerRadius = windowSizeClass.cornerRadius()
-    val sectionSpacing = windowSizeClass.sectionSpacing()
+    val _sectionSpacing = windowSizeClass.sectionSpacing() // kept for future spacing use
     
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -111,8 +114,8 @@ fun TextDisplay(
                 ) {
                     AppEmptyState(
                         icon = Icons.Default.TextFields,
-                        title = "No Text Available",
-                        description = "Select a PDF file to extract and display text",
+                        title = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.no_text_available_short),
+                        description = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.select_pdf_to_extract),
                         windowSizeClass = windowSizeClass
                     )
                 }
@@ -136,13 +139,13 @@ private fun TextDisplayHeader(
     ) {
         Icon(
             Icons.Default.TextFields,
-            contentDescription = null,
+            contentDescription = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.extracted_text_title),
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(20.dp)
         )
-        
+
         Text(
-            text = "Extracted Text",
+            text = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.extracted_text_title),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
@@ -156,15 +159,16 @@ private fun TextDisplayHeader(
         Spacer(modifier = Modifier.weight(1f))
         
         // Word count
-        if (text.isNotBlank()) {
+    if (text.isNotBlank()) {
             Card(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.secondaryContainer
                 ),
                 shape = RoundedCornerShape(8.dp)
             ) {
-                Text(
-                    text = "${text.split("\\s+".toRegex()).size} words",
+        val wordCount = text.split("\\s+".toRegex()).size
+        Text(
+            text = pluralStringResource(id = R.plurals.words, count = wordCount, wordCount),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -181,7 +185,7 @@ private fun TextDisplayHeader(
         ) {
             Icon(
                 Icons.Default.OpenInFull,
-                contentDescription = "Open in full screen",
+                contentDescription = stringResource(id = R.string.open_in_fullscreen),
                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.size(18.dp)
             )
@@ -259,7 +263,7 @@ private fun CurrentlyReadingPreview(
         ) {
             Icon(
                 Icons.Default.RecordVoiceOver,
-                contentDescription = null,
+                contentDescription = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.reading_aloud),
                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.size(16.dp)
             )
@@ -345,12 +349,12 @@ fun SynchronizedTextDisplay(
                 ) {
                     Icon(
                         Icons.Default.TextFields,
-                        contentDescription = null,
+                        contentDescription = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.no_text_available_short),
                         modifier = Modifier.size(48.dp),
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                     Text(
-                        text = "No text to display",
+                        text = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.no_text_available_message),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
@@ -461,12 +465,12 @@ private fun SynchronizedTextHeader(
     ) {
         Icon(
             Icons.Default.TextFields,
-            contentDescription = null,
+            contentDescription = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.reading_progress),
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(20.dp)
         )
         Text(
-            text = "Reading Progress",
+            text = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.reading_progress),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
@@ -665,11 +669,11 @@ fun FullScreenTextPanel(
                             ) {
                                 Icon(
                                     Icons.Default.TextFields,
-                                    contentDescription = null,
+                                    contentDescription = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.extracted_text_title),
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
-                                    text = "Reading Text",
+                                    text = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.extracted_text_title),
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -679,7 +683,7 @@ fun FullScreenTextPanel(
                             IconButton(onClick = onDismiss) {
                                 Icon(
                                     Icons.Default.Close,
-                                    contentDescription = "Close"
+                                    contentDescription = stringResource(id = R.string.close)
                                 )
                             }
                         },
@@ -740,12 +744,12 @@ private fun CurrentlyReadingHeader(segment: String) {
             ) {
                 Icon(
                     Icons.Default.RecordVoiceOver,
-                    contentDescription = null,
+                    contentDescription = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.reading_aloud),
                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.size(20.dp)
                 )
                 Text(
-                    text = "Currently Reading",
+                    text = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.currently_reading),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -911,7 +915,7 @@ private fun SpotifyStyleTextLine(
     currentWord: String,
     wordIndex: Int,
     isPlaying: Boolean,
-    lineIndex: Int
+    _lineIndex: Int
 ) {
     // Animation for current line highlighting
     val lineScale by animateFloatAsState(
@@ -1054,7 +1058,7 @@ private fun SpotifyStyleProgressIndicator(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
                 Text(
-                    text = "$totalWords words",
+                    text = pluralStringResource(id = R.plurals.words, count = totalWords, totalWords),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )

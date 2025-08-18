@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.res.stringResource
+import com.example.pdftovoice.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,11 +64,11 @@ fun TextHighlightingPanel(
                             ) {
                                 Icon(
                                     Icons.Default.TextFields,
-                                    contentDescription = null,
+                                    contentDescription = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.extracted_text_title),
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
-                                    text = "Reading Text",
+                                    text = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.extracted_text_title),
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -76,7 +78,7 @@ fun TextHighlightingPanel(
                             IconButton(onClick = onDismiss) {
                                 Icon(
                                     Icons.Default.Close,
-                                    contentDescription = "Close"
+                                    contentDescription = stringResource(id = R.string.close)
                                 )
                             }
                         },
@@ -115,7 +117,7 @@ fun TextHighlightingPanel(
                                             )
                                     )
                                     Text(
-                                        text = "Currently Reading",
+                                        text = stringResource(id = R.string.currently_reading),
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -170,22 +172,22 @@ fun TextHighlightingPanel(
                                     ) {
                                         Icon(
                                             Icons.Default.TextFields,
-                                            contentDescription = null,
+                                            contentDescription = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.no_text_available_short),
                                             modifier = Modifier.size(64.dp),
                                             tint = MaterialTheme.colorScheme.outline
                                         )
-                                        Text(
-                                            text = "No text to display",
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            color = MaterialTheme.colorScheme.outline,
-                                            textAlign = TextAlign.Center
-                                        )
-                                        Text(
-                                            text = "Select a PDF file to view its text content",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.outline,
-                                            textAlign = TextAlign.Center
-                                        )
+                                                Text(
+                                                    text = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.no_text_available_message),
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    color = MaterialTheme.colorScheme.outline,
+                                                    textAlign = TextAlign.Center
+                                                )
+                                                Text(
+                                                    text = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.select_pdf_to_extract),
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = MaterialTheme.colorScheme.outline,
+                                                    textAlign = TextAlign.Center
+                                                )
                                     }
                                 }
                             }

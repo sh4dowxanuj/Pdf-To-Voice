@@ -23,6 +23,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.example.pdftovoice.R
 import androidx.compose.ui.unit.sp
 import com.example.pdftovoice.ui.system.ResponsiveDimensions.buttonSize
 import com.example.pdftovoice.ui.system.ResponsiveDimensions.cornerRadius
@@ -64,14 +66,15 @@ fun AppTextField(
             Text(it, fontSize = (14 * scaleFactor).sp) 
         } },
         leadingIcon = leadingIcon?.let { {
-            Icon(imageVector = it, contentDescription = null)
+            // Use the field label as a more accurate content description for accessibility
+            Icon(imageVector = it, contentDescription = label)
         } },
         trailingIcon = if (isPassword) {
             {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(
                         imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                        contentDescription = if (passwordVisible) stringResource(id = R.string.hide_password) else stringResource(id = R.string.show_password)
                     )
                 }
             }
@@ -99,6 +102,7 @@ fun AppTextField(
         textStyle = LocalTextStyle.current.copy(
             fontSize = (16 * scaleFactor).sp
         ),
+        singleLine = true,
         modifier = modifier
     )
 }
@@ -131,7 +135,7 @@ fun AppButton(
             leadingIcon?.let {
                 Icon(
                     imageVector = it,
-                    contentDescription = null,
+                    contentDescription = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.start_reading_pdfs),
                     modifier = Modifier.size((18 * scaleFactor).dp)
                 )
             }
@@ -236,7 +240,7 @@ fun ReadingIndicator(
                 )
         )
         Text(
-            text = "Reading aloud...",
+            text = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.reading_aloud),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Medium
@@ -273,11 +277,11 @@ fun AppErrorCard(
             ) {
                 Icon(
                     Icons.Default.Error,
-                    contentDescription = null,
+                    contentDescription = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.error_label),
                     tint = MaterialTheme.colorScheme.onErrorContainer
                 )
                 Text(
-                    text = "Error",
+                    text = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.error_label),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onErrorContainer,
                     fontWeight = FontWeight.Bold
@@ -293,7 +297,7 @@ fun AppErrorCard(
             onRetry?.let {
                 AppButton(
                     onClick = it,
-                    text = "Retry",
+                    text = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.retry),
                     windowSizeClass = windowSizeClass,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error,
@@ -324,7 +328,7 @@ fun AppEmptyState(
     ) {
         Icon(
             icon,
-            contentDescription = null,
+            contentDescription = title,
             modifier = Modifier.size(64.dp),
             tint = MaterialTheme.colorScheme.outline
         )

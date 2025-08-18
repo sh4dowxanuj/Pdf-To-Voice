@@ -15,6 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.example.pdftovoice.R
 import com.example.pdftovoice.ui.theme.GoogleBlue
 import com.example.pdftovoice.ui.components.common.AppButton
 import com.example.pdftovoice.ui.components.reader.SynchronizedTextDisplay
@@ -69,7 +71,7 @@ fun HomeScreen(
         Spacer(modifier = Modifier.height(sectionSpacing * 2))
         
         Text(
-            text = "Welcome to PDF to Voice!",
+            text = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.welcome_message),
             fontSize = (24 * scaleFactor).sp,
             fontWeight = FontWeight.Bold,
             color = GoogleBlue
@@ -79,7 +81,7 @@ fun HomeScreen(
         
         if (extractedText.isNotEmpty()) {
             Text(
-                text = "Reading in progress with autoscrolling highlights",
+                text = stringResource(id = R.string.reading_in_progress_autoscroll),
                 fontSize = (16 * scaleFactor).sp,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -103,12 +105,12 @@ fun HomeScreen(
                 ) {
                     Icon(
                         Icons.Default.TextFields,
-                        contentDescription = null,
+                        contentDescription = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.start_reading_pdfs),
                         modifier = Modifier.size((18 * scaleFactor).dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        "Start Reading PDFs",
+                        androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.start_reading_pdfs),
                         fontSize = (16 * scaleFactor).sp
                     )
                 }
@@ -121,12 +123,12 @@ fun HomeScreen(
                     ) {
                         Icon(
                             Icons.Default.Fullscreen,
-                            contentDescription = null,
+                            contentDescription = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.fullscreen_text),
                             modifier = Modifier.size((18 * scaleFactor).dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            "Fullscreen Text",
+                            stringResource(id = R.string.fullscreen_text),
                             fontSize = (16 * scaleFactor).sp
                         )
                     }
@@ -147,14 +149,14 @@ fun HomeScreen(
                 ) {
                     Icon(
                         Icons.Default.TextFields,
-                        contentDescription = null,
+                        contentDescription = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.start_reading_pdfs),
                         modifier = Modifier.size((18 * scaleFactor).dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "Start Reading PDFs",
-                        fontSize = (16 * scaleFactor).sp
-                    )
+                        Text(
+                            androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.start_reading_pdfs),
+                            fontSize = (16 * scaleFactor).sp
+                        )
                 }
                 
                 // Fullscreen button (if text is available)
@@ -165,12 +167,12 @@ fun HomeScreen(
                     ) {
                         Icon(
                             Icons.Default.Fullscreen,
-                            contentDescription = null,
+                            contentDescription = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.fullscreen_text),
                             modifier = Modifier.size((18 * scaleFactor).dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            "Fullscreen Text",
+                            androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.fullscreen_text),
                             fontSize = (16 * scaleFactor).sp
                         )
                     }
@@ -203,12 +205,12 @@ fun HomeScreen(
                     ) {
                         Icon(
                             Icons.Default.TextFields,
-                            contentDescription = null,
+                            contentDescription = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.extracted_text_title),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size((20 * scaleFactor).dp)
                         )
                         Text(
-                            text = "Live Text with Autoscroll",
+                            text = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.extracted_text_title),
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontSize = (18 * scaleFactor).sp
                             ),
@@ -233,7 +235,7 @@ fun HomeScreen(
                                         )
                                 )
                                 Text(
-                                    text = "Reading",
+                                    text = stringResource(id = R.string.reading_aloud),
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontSize = (12 * scaleFactor).sp
                                     ),

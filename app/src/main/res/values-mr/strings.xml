@@ -39,6 +39,20 @@
     <string name="dont_have_account">खाते नाही?</string>
     <string name="sign_in_with_google">Google सह साइन इन करा</string>
     <string name="or_continue_with">किंवा यासह पुढे जा</string>
+    <string name="or">किंवा</string>
+    <string name="full_name">पूर्ण नाव</string>
+    <string name="enter_your_full_name">तुमचे पूर्ण नाव लिहा</string>
+    <string name="enter_your_email">तुमचा ईमेल लिहा</string>
+    <string name="enter_your_password">तुमचा पासवर्ड लिहा</string>
+    <string name="confirm_your_password">तुमचा पासवर्ड पुष्टी करा</string>
+    <string name="sign_up_to_get_started">सुरू करण्यासाठी साइन अप करा</string>
+    <string name="sign_up_with_google">Google सह साइन अप करा</string>
+    <string name="signing_in">साइन इन होत आहे…</string>
+    <string name="creating_account">खाते तयार होत आहे…</string>
+    <string name="fill_in_all_fields">कृपया सर्व फील्ड भरा</string>
+    <string name="back">मागे</string>
+    <string name="google_sign_in_failed">Google साइन इन अयशस्वी</string>
+    <string name="google_sign_in_cancelled">Google साइन इन रद्द करण्यात आले</string>
     
     <!-- Error Messages -->
     <string name="error_occurred">एक त्रुटी आली</string>
@@ -59,4 +73,46 @@
     <string name="advanced_controls">प्रगत नियंत्रण</string>
     <string name="show_controls">नियंत्रण दाखवा</string>
     <string name="hide_controls">नियंत्रण लपवा</string>
+    <string name="ok_button">ठीक</string>
+    <string name="welcome_message">PDF ते आवाज मध्ये आपले स्वागत आहे!</string>
+    <string name="start_reading_pdfs">PDF वाचणे सुरू करा</string>
+    <string name="clear_selection">निवड साफ करा</string>
+    <string name="ready_to_process_pdf">PDF प्रक्रिया करण्यास तयार</string>
+    <string name="extract_text">मजकूर काढा</string>
+    <string name="pdf_reader_title">PDF वाचक</string>
+    <string name="no_text_available">मजकूर उपलब्ध नाही</string>
+    <string name="fullscreen_text">पूर्ण-स्क्रीन मजकूर</string>
+    <string name="extracted_text_title">काढलेला मजकूर</string>
+    <string name="no_text_available_short">मजकूर उपलब्ध नाही</string>
+    <string name="select_pdf_to_extract">मजकूर काढण्यासाठी आणि दर्शवण्यासाठी PDF फाइल निवडा</string>
+    <string name="no_text_available_message">मजकूर उपलब्ध नाही</string>
+    <string name="reading_aloud">मोठ्याने वाचत आहे…</string>
+    <string name="currently_reading">सध्या वाचत आहे</string>
+    <string name="error_label">त्रुटी</string>
+    <string name="retry">पुन्हा प्रयत्न करा</string>
+    <string name="reading_progress">वाचन प्रगती</string>
+    <string name="reading_settings">वाचन सेटिंग्ज</string>
+    <string name="ready_to_play">प्ले करण्यास तयार</string>
+    <string name="speed_label_format">गती: %1$.1fx</string>
+    <string name="pitch_label_format">स्वराची उंची: %1$.1fx</string>
+    <string name="done">पूर्ण</string>
+    <string name="close">बंद करा</string>
+    <string name="previous">मागील</string>
+    <string name="next">पुढील</string>
+    <string name="open_in_fullscreen">पूर्ण-स्क्रीनमध्ये उघडा</string>
+    <string name="reading_in_progress_autoscroll">स्वतः स्क्रोल होणार्‍या हायलाइटसह वाचन सुरु आहे</string>
+    <string name="show_password">पासवर्ड दाखवा</string>
+    <string name="hide_password">पासवर्ड लपवा</string>
+    <string name="no_file_selected">कोणतीही फाइल निवडलेली नाही</string>
+    <string name="playing">प्लेयिंग…</string>
+    <string name="selected_file_label">निवडलेले: %1$s</string>
+    <string name="file_size_label">आकार: %1$s</string>
+    <string name="unknown_label">अज्ञात</string>
+    <string name="kilobytes_format">%1$d KB</string>
+    
+    <!-- Plurals -->
+    <plurals name="words">
+        <item quantity="one">%d शब्द</item>
+        <item quantity="other">%d शब्द</item>
+    </plurals>
 </resources>

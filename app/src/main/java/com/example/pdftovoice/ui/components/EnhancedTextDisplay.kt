@@ -26,6 +26,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.example.pdftovoice.R
 
 @Composable
 fun EnhancedTextDisplay(
@@ -72,12 +74,12 @@ fun EnhancedTextDisplay(
                 ) {
                     Icon(
                         Icons.Default.TextFields,
-                        contentDescription = null,
+                        contentDescription = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.extracted_text_title),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
-                        text = "Extracted Text",
+                        text = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.extracted_text_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -118,7 +120,7 @@ fun EnhancedTextDisplay(
                     ) {
                         Icon(
                             Icons.Default.OpenInFull,
-                            contentDescription = "Open in full screen",
+                            contentDescription = stringResource(id = R.string.open_in_fullscreen),
                             tint = MaterialTheme.colorScheme.onPrimaryContainer,
                             modifier = Modifier.size(18.dp)
                         )
@@ -139,7 +141,7 @@ fun EnhancedTextDisplay(
                             .verticalScroll(scrollState)
                     ) {
                         Text(
-                            text = createEnhancedHighlightedText(text, currentlyReadingSegment, isPlaying),
+                            text = text,
                             style = MaterialTheme.typography.bodyMedium,
                             lineHeight = 24.sp,
                             color = MaterialTheme.colorScheme.onSurface
@@ -165,7 +167,7 @@ fun EnhancedTextDisplay(
                         ) {
                             Icon(
                                 Icons.Default.RecordVoiceOver,
-                                contentDescription = null,
+                                contentDescription = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.reading_aloud),
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -193,18 +195,18 @@ fun EnhancedTextDisplay(
                     ) {
                         Icon(
                             Icons.Default.TextFields,
-                            contentDescription = null,
+                            contentDescription = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.no_text_available_short),
                             modifier = Modifier.size(48.dp),
                             tint = MaterialTheme.colorScheme.outline
                         )
                         Text(
-                            text = "No text extracted yet",
+                            text = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.no_text_available_short),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.outline,
                             textAlign = TextAlign.Center
                         )
                         Text(
-                            text = "Select a PDF file to extract and read text",
+                            text = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.select_pdf_to_extract),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.outline,
                             textAlign = TextAlign.Center

@@ -30,6 +30,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.example.pdftovoice.R
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -52,6 +54,7 @@ import kotlinx.coroutines.delay
  * - Gesture controls for showing/hiding UI
  */
 @OptIn(ExperimentalAnimationApi::class)
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun FullScreenReaderScreen(
     windowSizeClass: WindowSizeClass,
@@ -61,7 +64,7 @@ fun FullScreenReaderScreen(
     initialExtractedText: String? = null,
     onClose: () -> Unit = {}
 ) {
-    val context = LocalContext.current
+    // val _context = LocalContext.current // reserved for future use
     val state by viewModel.combinedState.collectAsState(initial = PdfToVoiceState())
     val isPlaying by viewModel.isPlaying.collectAsState()
     
@@ -107,7 +110,7 @@ fun FullScreenReaderScreen(
     
     // Responsive dimensions
     val isCompact = windowSizeClass.isCompact()
-    val horizontalPadding = windowSizeClass.horizontalPadding()
+    // val _horizontalPadding = windowSizeClass.horizontalPadding() // reserved for future layout tweaks
     val controlsHeight = if (isCompact) 80.dp else 100.dp
     
     Box(
@@ -158,7 +161,7 @@ fun FullScreenReaderScreen(
                 .zIndex(10f)
         ) {
             TopControlsBar(
-                title = initialPdfName ?: "PDF Reader",
+                title = initialPdfName ?: androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.pdf_reader_title),
                 isCompact = isCompact,
                 onClose = onClose,
                 onSettings = { showSettings = true },
@@ -211,7 +214,7 @@ fun FullScreenReaderScreen(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = state.processingStatus ?: "Loading...",
+                    text = state.processingStatus ?: androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.processing_pdf),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -248,7 +251,7 @@ private fun TopControlsBar(
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Close",
+                    contentDescription = stringResource(id = R.string.close),
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(if (isCompact) 20.dp else 24.dp)
                 )
@@ -277,7 +280,7 @@ private fun TopControlsBar(
             ) {
                 Icon(
                     imageVector = Icons.Default.Settings,
-                    contentDescription = "Settings",
+                    contentDescription = stringResource(id = R.string.reading_settings),
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(if (isCompact) 20.dp else 24.dp)
                 )
@@ -308,13 +311,13 @@ private fun FullScreenTextContent(
             ) {
                 Icon(
                     imageVector = Icons.Default.MenuBook,
-                    contentDescription = null,
+                    contentDescription = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.no_text_available),
                     modifier = Modifier.size(64.dp),
                     tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "No text available",
+                    text = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.no_text_available),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
@@ -375,7 +378,7 @@ private fun MediaPlayerBottomControls(
                 ) {
                     Icon(
                         imageVector = Icons.Default.SkipPrevious,
-                        contentDescription = "Previous",
+                        contentDescription = stringResource(id = R.string.previous),
                         tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(if (isCompact) 24.dp else 28.dp)
                     )
@@ -390,7 +393,7 @@ private fun MediaPlayerBottomControls(
                 ) {
                     Icon(
                         imageVector = if (viewModel.isPlaying()) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (viewModel.isPlaying()) "Pause" else "Play",
+                        contentDescription = if (viewModel.isPlaying()) stringResource(id = R.string.pause) else stringResource(id = R.string.play),
                         tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(if (isCompact) 32.dp else 36.dp)
                     )
@@ -403,7 +406,7 @@ private fun MediaPlayerBottomControls(
                 ) {
                     Icon(
                         imageVector = Icons.Default.SkipNext,
-                        contentDescription = "Next",
+                        contentDescription = stringResource(id = R.string.next),
                         tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(if (isCompact) 24.dp else 28.dp)
                     )
@@ -416,7 +419,7 @@ private fun MediaPlayerBottomControls(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Stop,
-                        contentDescription = "Stop",
+                        contentDescription = stringResource(id = R.string.stop),
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(if (isCompact) 24.dp else 28.dp)
                     )
@@ -435,7 +438,7 @@ private fun MediaPlayerBottomControls(
                         ReadingIndicator()
                     } else {
                         Text(
-                            text = "Ready to play",
+                            text = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.ready_to_play),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
@@ -454,7 +457,7 @@ private fun FullScreenSettingsDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("Reading Settings")
+            Text(androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.reading_settings))
         },
         text = {
             Column(
@@ -463,7 +466,7 @@ private fun FullScreenSettingsDialog(
                 // Speed control
                 Column {
                     Text(
-                        text = "Speed: ${String.format("%.1f", viewModel.getSpeed())}x",
+                        text = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.speed_label_format, viewModel.getSpeed()),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Slider(
@@ -477,7 +480,7 @@ private fun FullScreenSettingsDialog(
                 // Pitch control
                 Column {
                     Text(
-                        text = "Pitch: ${String.format("%.1f", viewModel.getPitch())}x",
+                        text = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.pitch_label_format, viewModel.getPitch()),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Slider(
@@ -491,7 +494,7 @@ private fun FullScreenSettingsDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Done")
+                Text(androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.done))
             }
         }
     )

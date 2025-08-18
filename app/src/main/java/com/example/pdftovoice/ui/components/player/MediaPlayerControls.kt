@@ -14,7 +14,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.example.pdftovoice.R
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.scale
 import com.example.pdftovoice.ui.components.common.AppIconButton
 import com.example.pdftovoice.ui.components.common.ReadingIndicator
 import com.example.pdftovoice.ui.system.ResponsiveDimensions.buttonSize
@@ -43,18 +46,16 @@ fun MediaPlayerControls(
     onStop: () -> Unit,
     onSpeedChange: (Float) -> Unit,
     onPitchChange: (Float) -> Unit,
-    onFullScreen: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onFullScreen: (() -> Unit)? = null
 ) {
     var showAdvancedControls by remember { mutableStateOf(false) }
     
     // Responsive dimensions
     val horizontalPadding = windowSizeClass.horizontalPadding()
-    val buttonSize = windowSizeClass.buttonSize()
-    val mainButtonSize = windowSizeClass.mainButtonSize()
-    val cornerRadius = windowSizeClass.cornerRadius()
-    val itemSpacing = windowSizeClass.itemSpacing()
-    val sectionSpacing = windowSizeClass.sectionSpacing()
+    // button sizes are derived in child composables when needed
+    val cornerRadius = windowSizeClass.cornerRadius() // used in child layouts
+    // spacing values are computed in child composables where used
     val isCompact = windowSizeClass.isCompact()
     val shouldUseDoubleColumn = windowSizeClass.shouldUseDoubleColumn()
     
@@ -151,7 +152,6 @@ private fun PlayerWideLayout(
             PlayerInfo(
                 fileName = fileName,
                 currentlyReadingSegment = currentlyReadingSegment,
-                isPlaying = isPlaying,
                 isCompact = false
             )
             
@@ -220,7 +220,6 @@ private fun PlayerCompactLayout(
         PlayerInfo(
             fileName = fileName,
             currentlyReadingSegment = currentlyReadingSegment,
-            isPlaying = isPlaying,
             isCompact = true
         )
         
@@ -256,7 +255,6 @@ private fun PlayerCompactLayout(
 private fun PlayerInfo(
     fileName: String?,
     currentlyReadingSegment: String,
-    isPlaying: Boolean,
     isCompact: Boolean
 ) {
     Column(
@@ -280,13 +278,20 @@ private fun PlayerInfo(
         
         // Currently reading segment
         if (currentlyReadingSegment.isNotBlank()) {
-            Text(
-                text = currentlyReadingSegment,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = if (isCompact) 2 else 3,
-                overflow = TextOverflow.Ellipsis
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = stringResource(id = R.string.currently_reading),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = currentlyReadingSegment,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = if (isCompact) 2 else 3,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }
@@ -303,9 +308,13 @@ private fun PlayerControlButtons(
     windowSizeClass: WindowSizeClass,
     isCompact: Boolean
 ) {
-    val buttonSize = windowSizeClass.buttonSize()
     val mainButtonSize = windowSizeClass.mainButtonSize()
     val spacing = windowSizeClass.itemSpacing()
+    val playScale by animateFloatAsState(
+        targetValue = if (isPlaying) 0.95f else 1.0f,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "playScale"
+    )
     
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -319,7 +328,7 @@ private fun PlayerControlButtons(
         // Stop Button
         AppIconButton(
             icon = Icons.Default.Stop,
-            contentDescription = "Stop",
+            contentDescription = stringResource(id = R.string.stop),
             onClick = onStop,
             windowSizeClass = windowSizeClass,
             containerColor = MaterialTheme.colorScheme.error,
@@ -333,13 +342,15 @@ private fun PlayerControlButtons(
                 else -> Icons.Default.PlayArrow
             },
             contentDescription = when {
-                isPlaying -> "Pause"
-                isPaused -> "Resume"
-                else -> "Play"
+                isPlaying -> stringResource(id = R.string.pause)
+                isPaused -> stringResource(id = R.string.resume)
+                else -> stringResource(id = R.string.play)
             },
             onClick = onPlayPause,
             windowSizeClass = windowSizeClass,
-            modifier = Modifier.size(mainButtonSize),
+            modifier = Modifier
+                .size(mainButtonSize)
+                .scale(playScale),
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary
         )
@@ -347,7 +358,7 @@ private fun PlayerControlButtons(
         // Settings Button
         AppIconButton(
             icon = if (showAdvancedControls) Icons.Default.ExpandLess else Icons.Default.Settings,
-            contentDescription = "Settings",
+            contentDescription = stringResource(id = R.string.reading_settings),
             onClick = onToggleAdvanced,
             windowSizeClass = windowSizeClass,
             containerColor = MaterialTheme.colorScheme.secondary,
@@ -358,7 +369,7 @@ private fun PlayerControlButtons(
         if (onFullScreen != null) {
             AppIconButton(
                 icon = Icons.Default.Fullscreen,
-                contentDescription = "Full Screen",
+                contentDescription = stringResource(id = R.string.fullscreen_text),
                 onClick = onFullScreen,
                 windowSizeClass = windowSizeClass,
                 containerColor = MaterialTheme.colorScheme.tertiary,
@@ -378,8 +389,8 @@ private fun PlayerAdvancedControls(
 ) {
     AnimatedVisibility(
         visible = true,
-        enter = fadeIn() + expandVertically(),
-        exit = fadeOut() + shrinkVertically()
+        enter = fadeIn(tween(200)) + expandVertically(),
+        exit = fadeOut(tween(150)) + shrinkVertically()
     ) {
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -395,7 +406,7 @@ private fun PlayerAdvancedControls(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     PlayerControlSlider(
-                        label = "Speed",
+                        label = stringResource(id = R.string.speed),
                         value = speed,
                         valueRange = 0.5f..2.0f,
                         onValueChange = onSpeedChange,
@@ -403,7 +414,7 @@ private fun PlayerAdvancedControls(
                     )
                     
                     PlayerControlSlider(
-                        label = "Pitch",
+                        label = stringResource(id = R.string.pitch),
                         value = pitch,
                         valueRange = 0.5f..2.0f,
                         onValueChange = onPitchChange,
@@ -417,7 +428,7 @@ private fun PlayerAdvancedControls(
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     PlayerControlSlider(
-                        label = "Speed",
+                        label = stringResource(id = R.string.speed),
                         value = speed,
                         valueRange = 0.5f..2.0f,
                         onValueChange = onSpeedChange,
@@ -426,7 +437,7 @@ private fun PlayerAdvancedControls(
                     )
                     
                     PlayerControlSlider(
-                        label = "Pitch",
+                        label = stringResource(id = R.string.pitch),
                         value = pitch,
                         valueRange = 0.5f..2.0f,
                         onValueChange = onPitchChange,

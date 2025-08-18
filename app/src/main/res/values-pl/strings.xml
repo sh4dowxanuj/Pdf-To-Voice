@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PDF na Głos</string>
+    
+    <!-- Main Screen -->
+    <string name="pdf_to_voice_reader">Czytnik PDF na Głos</string>
+    <string name="select_pdf_file">Wybierz plik PDF</string>
+    <string name="choose_file">Wybierz plik</string>
+    <string name="logout">Wyloguj się</string>
+    
+    <!-- PDF Processing -->
+    <string name="extracted_text">Wyodrębniony tekst</string>
+    <string name="no_text_extracted">Nie wyodrębniono tekstu z PDF</string>
+    <string name="processing_pdf">Przetwarzanie PDF…</string>
+    <string name="pdf_processed_successfully">PDF został pomyślnie przetworzony</string>
+    
+    <!-- TTS Controls -->
+    <string name="playback_controls">Sterowanie odtwarzaniem</string>
+    <string name="play">Odtwórz</string>
+    <string name="pause">Pauza</string>
+    <string name="stop">Zatrzymaj</string>
+    <string name="resume">Wznów</string>
+    <string name="speed">Prędkość</string>
+    <string name="pitch">Ton</string>
+    <string name="language">Język</string>
+    <string name="select_language">Wybierz język</string>
+    
+    <!-- Authentication -->
+    <string name="welcome_back">Witaj ponownie</string>
+    <string name="sign_in_to_continue">Zaloguj się, aby kontynuować</string>
+    <string name="email">E-mail</string>
+    <string name="password">Hasło</string>
+    <string name="sign_in">Zaloguj się</string>
+    <string name="sign_up">Zarejestruj się</string>
+    <string name="create_account">Utwórz konto</string>
+    <string name="join_us_today">Dołącz do nas już dziś</string>
+    <string name="confirm_password">Potwierdź hasło</string>
+    <string name="already_have_account">Masz już konto?</string>
+    <string name="dont_have_account">Nie masz konta?</string>
+    <string name="sign_in_with_google">Zaloguj się przez Google</string>
+    <string name="or_continue_with">lub kontynuuj za pomocą</string>
+    <string name="or">lub</string>
+    <string name="full_name">Imię i nazwisko</string>
+    <string name="enter_your_full_name">Wpisz swoje imię i nazwisko</string>
+    <string name="enter_your_email">Wpisz swój e-mail</string>
+    <string name="enter_your_password">Wpisz swoje hasło</string>
+    <string name="confirm_your_password">Potwierdź swoje hasło</string>
+    <string name="sign_up_to_get_started">Zarejestruj się, aby zacząć</string>
+    <string name="sign_up_with_google">Zarejestruj się przez Google</string>
+    <string name="signing_in">Logowanie…</string>
+    <string name="creating_account">Tworzenie konta…</string>
+    <string name="fill_in_all_fields">Proszę wypełnić wszystkie pola</string>
+    <string name="back">Wstecz</string>
+    <string name="google_sign_in_failed">Logowanie Google nie powiodło się</string>
+    <string name="google_sign_in_cancelled">Logowanie Google zostało anulowane</string>
+    
+    <!-- Error Messages -->
+    <string name="error_occurred">Wystąpił błąd</string>
+    <string name="invalid_email">Nieprawidłowy adres e-mail</string>
+    <string name="password_too_short">Hasło musi mieć co najmniej 6 znaków</string>
+    <string name="passwords_dont_match">Hasła nie są zgodne</string>
+    <string name="login_failed">Logowanie nie powiodło się</string>
+    <string name="signup_failed">Rejestracja nie powiodła się</string>
+    <string name="tts_not_available">Synteza mowy niedostępna</string>
+    <string name="language_not_supported">Język nieobsługiwany</string>
+    
+    <!-- Progress -->
+    <string name="progress">Postęp</string>
+    <string name="segment_of">%1$d z %2$d</string>
+    
+    <!-- Settings -->
+    <string name="settings">Ustawienia</string>
+    <string name="advanced_controls">Zaawansowane sterowanie</string>
+    <string name="show_controls">Pokaż sterowanie</string>
+    <string name="hide_controls">Ukryj sterowanie</string>
+    <string name="ok_button">OK</string>
+    <string name="welcome_message">Witamy w PDF na Głos!</string>
+    <string name="start_reading_pdfs">Zacznij czytać pliki PDF</string>
+    <string name="clear_selection">Wyczyść wybór</string>
+    <string name="ready_to_process_pdf">Gotowe do przetworzenia PDF</string>
+    <string name="extract_text">Wyodrębnij tekst</string>
+    <string name="pdf_reader_title">Czytnik PDF</string>
+    <string name="no_text_available">Brak dostępnego tekstu</string>
+    <string name="fullscreen_text">Tekst na pełnym ekranie</string>
+    <string name="extracted_text_title">Wyodrębniony tekst</string>
+    <string name="no_text_available_short">Brak tekstu</string>
+    <string name="select_pdf_to_extract">Wybierz plik PDF, aby wyodrębnić i wyświetlić tekst</string>
+    <string name="no_text_available_message">Brak dostępnego tekstu</string>
+    <string name="reading_aloud">Czytanie na głos…</string>
+    <string name="currently_reading">Aktualnie czytane</string>
+    <string name="error_label">Błąd</string>
+    <string name="retry">Spróbuj ponownie</string>
+    <string name="reading_progress">Postęp czytania</string>
+    <string name="reading_settings">Ustawienia czytania</string>
+    <string name="ready_to_play">Gotowe do odtwarzania</string>
+    <string name="speed_label_format">Prędkość: %1$.1fx</string>
+    <string name="pitch_label_format">Ton: %1$.1fx</string>
+    <string name="done">Gotowe</string>
+    <string name="close">Zamknij</string>
+    <string name="previous">Poprzedni</string>
+    <string name="next">Następny</string>
+    <string name="open_in_fullscreen">Otwórz na pełnym ekranie</string>
+    <string name="reading_in_progress_autoscroll">Czytanie w toku z automatycznym przewijaniem podświetleń</string>
+    <string name="show_password">Pokaż hasło</string>
+    <string name="hide_password">Ukryj hasło</string>
+    <string name="no_file_selected">Nie wybrano pliku</string>
+    <string name="playing">Odtwarzanie…</string>
+    <string name="selected_file_label">Wybrano: %1$s</string>
+    <string name="file_size_label">Rozmiar: %1$s</string>
+    <string name="unknown_label">Nieznany</string>
+    <string name="kilobytes_format">%1$d KB</string>
+    
+    <!-- Plurals -->
+    <plurals name="words">
+        <item quantity="one">%d słowo</item>
+        <item quantity="few">%d słowa</item>
+        <item quantity="many">%d słów</item>
+        <item quantity="other">%d słowa</item>
+    </plurals>
+</resources>

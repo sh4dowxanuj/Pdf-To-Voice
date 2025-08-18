@@ -13,6 +13,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.example.pdftovoice.R
 import com.example.pdftovoice.ui.responsive.ResponsiveTypography.scaleFactor
 
 /**
@@ -53,7 +55,7 @@ fun ResponsiveTextField(
         leadingIcon = leadingIcon?.let { {
             Icon(
                 imageVector = it,
-                contentDescription = null
+                contentDescription = androidx.compose.ui.res.stringResource(id = com.example.pdftovoice.R.string.select_language)
             )
         } },
         trailingIcon = if (isPassword) {
@@ -61,7 +63,7 @@ fun ResponsiveTextField(
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(
                         imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                        contentDescription = if (passwordVisible) stringResource(id = R.string.hide_password) else stringResource(id = R.string.show_password)
                     )
                 }
             }

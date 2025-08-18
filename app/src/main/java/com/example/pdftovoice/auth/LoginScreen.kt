@@ -29,7 +29,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.pdftovoice.R
 import com.example.pdftovoice.ui.theme.GoogleBlue
 import com.example.pdftovoice.ui.components.ResponsiveTextField
 import com.example.pdftovoice.ui.components.ResponsiveButton
@@ -54,7 +56,6 @@ fun LoginScreen(
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
     
@@ -118,7 +119,7 @@ fun LoginScreen(
         
         // App Logo/Title
         Text(
-            text = "PDF to Voice",
+            text = stringResource(id = R.string.app_name),
             fontSize = if (windowSizeClass.isCompact()) 28.sp else 32.sp,
             fontWeight = FontWeight.Bold,
             color = GoogleBlue,
@@ -128,7 +129,7 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(verticalPadding / 2))
         
         Text(
-            text = "Sign in to your account",
+            text = stringResource(id = R.string.sign_in_to_continue),
             fontSize = if (windowSizeClass.isCompact()) 14.sp else 16.sp,
             color = Color.Gray,
             textAlign = TextAlign.Center
@@ -151,25 +152,25 @@ fun LoginScreen(
                 ResponsiveTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = "Email",
+                    label = stringResource(id = R.string.email),
                     windowSizeClass = windowSizeClass,
                     leadingIcon = Icons.Default.Email,
                     keyboardType = KeyboardType.Email,
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = "Enter your email"
+                    placeholder = stringResource(id = R.string.enter_your_email)
                 )
                 
                 // Password Field
                 ResponsiveTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = "Password",
+                    label = stringResource(id = R.string.password),
                     windowSizeClass = windowSizeClass,
                     leadingIcon = Icons.Default.Lock,
                     keyboardType = KeyboardType.Password,
                     isPassword = true,
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = "Enter your password",
+                    placeholder = stringResource(id = R.string.enter_your_password),
                     isError = errorMessage.isNotEmpty(),
                     errorMessage = if (errorMessage.isNotEmpty()) errorMessage else null
                 )
@@ -182,15 +183,15 @@ fun LoginScreen(
                             viewModel.signIn(email, password) { success, error ->
                                 isLoading = false
                                 if (!success) {
-                                    errorMessage = error ?: "Login failed"
+                                    errorMessage = error ?: context.getString(R.string.login_failed)
                                 }
                             }
                         } else {
-                            errorMessage = "Please fill in all fields"
+                            errorMessage = context.getString(R.string.fill_in_all_fields)
                         }
                     },
                     windowSizeClass = windowSizeClass,
-                    text = if (isLoading) "Signing in..." else "Sign In",
+            text = if (isLoading) stringResource(id = R.string.signing_in) else stringResource(id = R.string.sign_in),
                     enabled = !isLoading,
                     colors = ButtonDefaults.buttonColors(containerColor = GoogleBlue),
                     modifier = Modifier.fillMaxWidth()
@@ -202,7 +203,7 @@ fun LoginScreen(
                 ) {
                     Divider(modifier = Modifier.weight(1f))
                     Text(
-                        text = "or",
+                        text = stringResource(id = R.string.or),
                         modifier = Modifier.padding(horizontal = sectionSpacing),
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                         fontSize = (14 * windowSizeClass.scaleFactor()).sp
@@ -242,7 +243,7 @@ fun LoginScreen(
                         )
                         Spacer(modifier = Modifier.width(sectionSpacing))
                         Text(
-                            text = "Continue with Google",
+                            text = stringResource(id = R.string.sign_in_with_google),
                             fontSize = (16 * windowSizeClass.scaleFactor()).sp,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurface
@@ -258,14 +259,15 @@ fun LoginScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Don't have an account? ",
+                        text = stringResource(id = R.string.dont_have_account),
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                         fontSize = (14 * windowSizeClass.scaleFactor()).sp
                     )
+                    Spacer(modifier = Modifier.width(4.dp))
                     ResponsiveTextButton(
                         onClick = onNavigateToSignUp,
                         windowSizeClass = windowSizeClass,
-                        text = "Sign Up"
+                        text = stringResource(id = R.string.sign_up)
                     )
                 }
             }
