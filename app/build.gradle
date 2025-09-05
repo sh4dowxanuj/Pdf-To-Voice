@@ -32,8 +32,8 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
+                minifyEnabled false // Disabled to fix R8 build error
+                shrinkResources false // Disabled to fix build error: Removing unused resources requires unused code shrinking
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             
             // Optimize for release builds

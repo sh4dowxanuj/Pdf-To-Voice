@@ -13,6 +13,7 @@ gradle/wrapper/gradle-wrapper.jar
 /.idea/assetWizardSettings.xml
 .DS_Store
 /build
+/android-sdk
 /captures
 .externalNativeBuild
 .cxx
@@ -30,3 +31,4 @@ app/build/
 !apk/*.apk
 
 # Firebase config included (private repo)
+app/google-services.json
