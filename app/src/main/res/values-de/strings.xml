@@ -115,4 +115,7 @@
         <item quantity="one">%d Wort</item>
         <item quantity="other">%d Wörter</item>
     </plurals>
+    
+    <!-- Google Sign-In -->
+    <string name="default_web_client_id" translatable="false">37344876683-gqih7s977o6vbvsm1f9u1g31lg763pvt.apps.googleusercontent.com</string>
 </resources>
