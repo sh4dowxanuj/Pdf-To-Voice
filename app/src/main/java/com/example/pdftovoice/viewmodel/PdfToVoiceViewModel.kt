@@ -361,7 +361,7 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
     private suspend fun translateTextLibre(text: String, targetLang: String): String {
         return try {
             val url = "https://libretranslate.de/translate"
-            val requestBody = "q=${java.net.URLEncoder.encode(text, "UTF-8")}&source=en&target=$targetLang&format=text"
+            val requestBody = "q=${java.net.URLEncoder.encode(text, "UTF-8")}&source=auto&target=$targetLang&format=text"
             val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
             conn.requestMethod = "POST"
             conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
