@@ -219,7 +219,7 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
                 
                 // Auto-start extraction after analysis
                 if (analysisInfo.isValid) {
-                    extractTextFromPdf(uri, updatedFileInfo)
+                    extractTextFromPdf(uri)
                 } else {
                     _state.value = _state.value.copy(
                         errorMessage = analysisInfo.errorMessage ?: "Invalid PDF file"
@@ -237,31 +237,32 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
     
-    private fun extractTextFromPdf(uri: Uri, pdfFileInfo: PdfFileInfo) {
+    private fun extractTextFromPdf(uri: Uri) {
         currentPdfJob = viewModelScope.launch {
             try {
                 _state.value = _state.value.copy(
                     isLoading = true,
                     processingStatus = "Extracting text using best available method..."
                 )
-                
+
                 Log.d(TAG, "Starting text extraction")
-                
-                val result = pdfProcessor.extractTextWithDetails(uri).getOrThrow()
-                
+
+                val languageCode = currentLanguage.value.code
+                val result = pdfProcessor.extractTextWithDetails(uri, languageCode).getOrThrow()
+
                 Log.d(TAG, "Text extraction completed using ${result.method}")
-                
+
                 val statusMessage = buildString {
                     append("✅ Extraction Complete!\n")
                     append("Method: ${result.method.name.replace("_", " ")}\n")
                     append("Text Length: ${result.text.length} characters\n")
                     append("Pages Processed: ${result.pageCount}")
-                    
+
                     if (result.hasImages) {
                         append("\n📷 Contains images")
                     }
                 }
-                
+
                 _state.value = _state.value.copy(
                     extractedText = result.text,
                     extractionMethod = result.method,
@@ -273,16 +274,16 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
                         statusMessage
                     }
                 )
-                
+
             } catch (e: Exception) {
                 Log.e(TAG, "Text extraction failed", e)
                 _state.value = _state.value.copy(
                     errorMessage = when {
-                        e.message?.contains("password", ignoreCase = true) == true -> 
+                        e.message?.contains("password", ignoreCase = true) == true ->
                             "This PDF is password protected and cannot be read."
-                        e.message?.contains("encrypt", ignoreCase = true) == true -> 
+                        e.message?.contains("encrypt", ignoreCase = true) == true ->
                             "This PDF is encrypted and cannot be read."
-                        e.message?.contains("corrupted", ignoreCase = true) == true -> 
+                        e.message?.contains("corrupted", ignoreCase = true) == true ->
                             "This PDF file appears to be corrupted."
                         else -> "Failed to extract text from PDF: ${e.message}"
                     },
@@ -355,7 +356,7 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
         val currentFile = _state.value.selectedPdfFile
         if (currentFile != null) {
             Log.d(TAG, "Retrying text extraction")
-            extractTextFromPdf(currentFile.uri, currentFile)
+            extractTextFromPdf(currentFile.uri)
         }
     }
     

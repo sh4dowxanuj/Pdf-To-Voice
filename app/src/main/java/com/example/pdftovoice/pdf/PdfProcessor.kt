@@ -33,7 +33,15 @@ class PdfProcessor(private val context: Context) {
         private const val MAX_OCR_PAGES = 15 // Increased limit for better coverage
     }
 
-    private val textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+    private fun getTextRecognizer(language: String): com.google.mlkit.vision.text.TextRecognizer {
+        // Use Latin for English, else use script-based recognizer if available
+        return if (language == "en" || language.isBlank()) {
+            TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+        } else {
+            // For other languages, use default (Latin) or extend here for more models
+            TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+        }
+    }
 
     init {
         // Initialize PDFBox for Android
@@ -55,9 +63,9 @@ class PdfProcessor(private val context: Context) {
         HYBRID
     }
 
-    suspend fun extractTextFromPdf(uri: Uri): Result<String> = withContext(Dispatchers.IO) {
+    suspend fun extractTextFromPdf(uri: Uri, languageCode: String = "en"): Result<String> = withContext(Dispatchers.IO) {
         try {
-            val result = extractTextWithMethod(uri)
+            val result = extractTextWithMethod(uri, languageCode)
             Result.success(result.text)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to extract text from PDF", e)
@@ -65,9 +73,9 @@ class PdfProcessor(private val context: Context) {
         }
     }
 
-    suspend fun extractTextWithDetails(uri: Uri): Result<ExtractionResult> = withContext(Dispatchers.IO) {
+    suspend fun extractTextWithDetails(uri: Uri, languageCode: String = "en"): Result<ExtractionResult> = withContext(Dispatchers.IO) {
         try {
-            val result = extractTextWithMethod(uri)
+            val result = extractTextWithMethod(uri, languageCode)
             Result.success(result)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to extract text from PDF with details", e)
@@ -75,7 +83,7 @@ class PdfProcessor(private val context: Context) {
         }
     }
 
-    private suspend fun extractTextWithMethod(uri: Uri): ExtractionResult = withContext(Dispatchers.IO) {
+    private suspend fun extractTextWithMethod(uri: Uri, languageCode: String = "en"): ExtractionResult = withContext(Dispatchers.IO) {
         Log.d(TAG, "Starting text extraction from URI: $uri")
         val tempFile = createTempFile(uri)
         
@@ -94,7 +102,7 @@ class PdfProcessor(private val context: Context) {
             
             // Method 2: OCR with Android PdfRenderer (For scanned/image PDFs)
             Log.d(TAG, "Trying OCR extraction...")
-            val ocrResult = tryOcrExtraction(tempFile)
+            val ocrResult = tryOcrExtraction(tempFile, languageCode)
             if (ocrResult.text.length >= MIN_TEXT_LENGTH) {
                 Log.d(TAG, "Successfully extracted using OCR: ${ocrResult.text.length} characters")
                 return@withContext ocrResult
@@ -192,7 +200,7 @@ class PdfProcessor(private val context: Context) {
         }
     }
 
-    private suspend fun tryOcrExtraction(file: File): ExtractionResult = withContext(Dispatchers.IO) {
+    private suspend fun tryOcrExtraction(file: File, languageCode: String = "en"): ExtractionResult = withContext(Dispatchers.IO) {
         var fileDescriptor: ParcelFileDescriptor? = null
         var pdfRenderer: PdfRenderer? = null
         
@@ -218,7 +226,7 @@ class PdfProcessor(private val context: Context) {
                 page.close()
                 
                 // Perform OCR on the bitmap
-                val ocrText = performOcr(bitmap)
+                val ocrText = performOcr(bitmap, languageCode)
                 if (ocrText.isNotBlank()) {
                     text.append("=== Page ${i + 1} ===\n")
                     text.append(ocrText).append("\n\n")
@@ -246,10 +254,11 @@ class PdfProcessor(private val context: Context) {
         }
     }
 
-    private suspend fun performOcr(bitmap: Bitmap): String = withContext(Dispatchers.IO) {
+    private suspend fun performOcr(bitmap: Bitmap, languageCode: String = "en"): String = withContext(Dispatchers.IO) {
         try {
             val image = InputImage.fromBitmap(bitmap, 0)
-            val result = textRecognizer.process(image).await()
+            val recognizer = getTextRecognizer(languageCode)
+            val result = recognizer.process(image).await()
             return@withContext result.text
         } catch (e: Exception) {
             Log.w(TAG, "OCR failed: ${e.message}")

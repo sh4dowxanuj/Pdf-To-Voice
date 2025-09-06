@@ -1,7 +1,7 @@
 # PDF to Voice Reader 🎙️📱
 
 A modern Android application that converts PDF documents into speech using Text-to-Speech (TTS) technology. Built with **Kotlin** and **Jetpack Compose** following Material Design 3 principles.
-37344876683-gqih7s977o6vbvsm1f9u1g31lg763pvt.apps.googleusercontent.com
+
 ## ✨ Features Implemented
 
 ### 🎯 Core Functionality
