@@ -335,6 +335,46 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
     
     fun setLanguage(language: Language) {
         ttsManager.setLanguage(language)
+        updateLocale(language)
+        translateExtractedTextIfNeeded(language)
+    }
+
+    private fun updateLocale(language: Language) {
+        val locale = java.util.Locale(language.code)
+        java.util.Locale.setDefault(locale)
+        val resources = context.resources
+        val config = resources.configuration
+        config.setLocale(locale)
+        resources.updateConfiguration(config, resources.displayMetrics)
+    }
+
+    private fun translateExtractedTextIfNeeded(language: Language) {
+        val text = _state.value.extractedText
+        if (text.isBlank()) return
+        viewModelScope.launch {
+            val translated = translateTextLibre(text, language.code)
+            setExtractedText(translated)
+        }
+    }
+
+    // LibreTranslate API call (no API key required)
+    private suspend fun translateTextLibre(text: String, targetLang: String): String {
+        return try {
+            val url = "https://libretranslate.de/translate"
+            val requestBody = "q=${java.net.URLEncoder.encode(text, "UTF-8")}&source=en&target=$targetLang&format=text"
+            val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+            conn.requestMethod = "POST"
+            conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
+            conn.doOutput = true
+            conn.outputStream.use { it.write(requestBody.toByteArray()) }
+            val response = conn.inputStream.bufferedReader().readText()
+            // Parse response: {\"translatedText\":\"...\"}
+            val regex = "\\\"translatedText\\\":\\\"(.*?)\\\"".toRegex()
+            regex.find(response)?.groups?.get(1)?.value ?: text
+        } catch (e: Exception) {
+            Log.e("PdfToVoiceViewModel", "LibreTranslate failed: ${e.message}")
+            text
+        }
     }
     
     fun clearPdf() {
