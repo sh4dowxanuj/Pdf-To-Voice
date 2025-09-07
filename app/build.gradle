@@ -8,6 +8,19 @@ android {
     namespace 'com.example.pdftovoice'
     compileSdk 34
 
+    // Secure Gemini API key loading: prefer local.properties (not committed) then Gradle prop then env.
+    def geminiApiKey = ""
+    def localProps = rootProject.file("local.properties")
+    if (localProps.exists()) {
+        def props = new Properties()
+        localProps.withInputStream { props.load(it) }
+        geminiApiKey = (props.getProperty("GEMINI_API_KEY") ?: "").toString()
+    }
+    if (!geminiApiKey) {
+        geminiApiKey = (project.findProperty("GEMINI_API_KEY") ?: System.getenv("GEMINI_API_KEY") ?: "").toString()
+    }
+    logger.lifecycle("[Pdf-To-Voice] Gemini API key loaded (non-empty): " + (!geminiApiKey.isEmpty()))
+
     defaultConfig {
         applicationId "com.example.pdftovoice"
         minSdk 24
@@ -28,6 +41,9 @@ android {
         // Additional performance optimizations
         vectorDrawables.useSupportLibrary = true
         multiDexEnabled = false // Disable unless needed for faster builds
+
+    // Expose Gemini API key to BuildConfig (empty if not provided)
+    buildConfigField "String", "GEMINI_API_KEY", '"' + geminiApiKey.replace('"','') + '"'
     }
 
     buildTypes {

@@ -17,6 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.delay
+import com.example.pdftovoice.BuildConfig
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -51,7 +52,11 @@ data class PdfToVoiceState(
     val isTranslating: Boolean = false,
     val translationProgress: Int = 0, // percentage 0..100
     val translationLanguage: String? = null,
-    val translationError: String? = null
+    val translationError: String? = null,
+    // Additional translation diagnostics
+    val isGeminiAvailable: Boolean = false,
+    val translationProvider: String? = null, // Gemini | Libre | Mixed
+    val translationPartial: Boolean = false
 )
 
 enum class TextSource { ORIGINAL, TRANSLATED }
@@ -111,6 +116,9 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
     
     init {
         initializeTts()
+    val keyPresent = !BuildConfig.GEMINI_API_KEY.isNullOrBlank()
+    Log.d(TAG, "Gemini API key present: $keyPresent length=${BuildConfig.GEMINI_API_KEY.length}")
+    _state.value = _state.value.copy(isGeminiAvailable = keyPresent)
     }
     
     private fun initializeTts() {
@@ -367,6 +375,11 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
 
     private var lastTranslatedLanguage: String? = null
     private var translationJob: Job? = null
+    // Translation LRU cache
+    private val translationCache = object : LinkedHashMap<String, String>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?): Boolean = size > 20
+    }
+    private fun cacheKey(text: String, lang: String): String = text.length.toString() + ":" + text.hashCode() + ":" + lang.lowercase()
 
     private fun startTranslationIfNeeded(language: Language) {
         val st = _state.value
@@ -375,6 +388,21 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
         if (language.code == lastTranslatedLanguage && st.translatedText != null) return
         // Avoid translating if text already appears to be in that language (very naive heuristic)
         if (language.code.equals("en", true) && original.matches(Regex("[A-Za-z0-9\\s,.;:'\"!?()-]+"))) return
+        val key = cacheKey(original, language.code)
+        translationCache[key]?.let { cached ->
+            Log.d(TAG, "Using cached translation for ${language.code}")
+            _state.value = _state.value.copy(
+                translatedText = cached,
+                translationLanguage = language.code,
+                activeTextSource = TextSource.TRANSLATED,
+                extractedText = if (_state.value.activeTextSource == TextSource.TRANSLATED) cached else _state.value.extractedText,
+                translationProvider = "Cache",
+                translationPartial = false,
+                isTranslating = false
+            )
+            lastTranslatedLanguage = language.code
+            return
+        }
         startTranslation(original, language.code)
     }
 
@@ -397,22 +425,86 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
         _state.value = _state.value.copy(isTranslating = false, processingStatus = null)
     }
 
+    fun clearTranslation() {
+        val st = _state.value
+        _state.value = st.copy(
+            translatedText = null,
+            activeTextSource = TextSource.ORIGINAL,
+            extractedText = st.originalExtractedText,
+            translationLanguage = null,
+            translationProvider = null,
+            translationPartial = false,
+            translationProgress = 0,
+            translationError = null
+        )
+    }
+
     private fun startTranslation(original: String, targetLang: String) {
         translationJob?.cancel()
         translationJob = viewModelScope.launch {
             try {
+                // Detect probable existing language; if matches target skip
+                val detected = detectLanguage(original)
+                if (detected != null && detected.equals(targetLang, true)) {
+                    Log.d(TAG, "Skipping translation: detected language $detected already matches target $targetLang")
+                    lastTranslatedLanguage = targetLang
+                    _state.value = _state.value.copy(
+                        translationLanguage = targetLang,
+                        translationProvider = "Skip",
+                        translatedText = original,
+                        activeTextSource = if (_state.value.activeTextSource == TextSource.TRANSLATED) TextSource.TRANSLATED else _state.value.activeTextSource
+                    )
+                    return@launch
+                }
                 _state.value = _state.value.copy(
                     isTranslating = true,
                     translationProgress = 0,
                     translationLanguage = targetLang,
                     translationError = null,
-                    processingStatus = "Translating..."
+                    processingStatus = "Translating...",
+                    translationProvider = null,
+                    translationPartial = false
                 )
-                val translated = translateFullTextChunked(original, targetLang) { progress ->
+                // Inline chunked translation to allow partial preservation
+                val chunkSize = 4500
+                val chunks = mutableListOf<String>()
+                var idx = 0
+                while (idx < original.length) {
+                    var end = (idx + chunkSize).coerceAtMost(original.length)
+                    if (end < original.length) {
+                        val nextSpace = original.lastIndexOf(' ', end)
+                        if (nextSpace > idx + 1000) end = nextSpace
+                    }
+                    chunks.add(original.substring(idx, end))
+                    idx = end
+                }
+                val sb = StringBuilder(original.length + 64)
+                val providersUsed = mutableSetOf<String>()
+                for ((i, chunk) in chunks.withIndex()) {
+                    if (!isActive) break
+                    val tr = translateChunk(chunk, targetLang)
+                    sb.append(tr.text)
+                    if (i < chunks.lastIndex) sb.append('\n')
+                    providersUsed += tr.provider
+                    val progress = ((i + 1) * 100f / chunks.size).toInt()
+                    // Publish partial progress & text
+                    val partial = sb.toString()
                     _state.value = _state.value.copy(
                         translationProgress = progress,
-                        processingStatus = "Translating... $progress%"
+                        processingStatus = "Translating... $progress%",
+                        translatedText = partial,
+                        translationProvider = providersUsed.firstOrNull(),
+                        translationPartial = progress < 100
                     )
+                    delay(150)
+                }
+                var translated = sb.toString()
+                // Whitespace normalization (collapse 3+ blank lines to 2)
+                translated = translated.replace(Regex("\n{3,}"), "\n\n").trim()
+                val providerLabel = when {
+                    providersUsed.isEmpty() -> null
+                    providersUsed.size == 1 -> providersUsed.first()
+                    else -> "Mixed"
                 }
                 lastTranslatedLanguage = targetLang
                 _state.value = _state.value.copy(
@@ -420,10 +512,22 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
                     isTranslating = false,
                     processingStatus = null,
                     activeTextSource = if (_state.value.activeTextSource == TextSource.TRANSLATED || _state.value.translatedText == null) TextSource.TRANSLATED else _state.value.activeTextSource,
-                    extractedText = if (_state.value.activeTextSource == TextSource.TRANSLATED) translated else _state.value.extractedText
+                    extractedText = if (_state.value.activeTextSource == TextSource.TRANSLATED) translated else _state.value.extractedText,
+                    translationProvider = providerLabel,
+                    translationPartial = false
                 )
+                // Cache result
+                val key = cacheKey(original, targetLang)
+                translationCache[key] = translated
             } catch (e: CancellationException) {
                 Log.w(TAG, "Translation cancelled")
+                // Preserve partial text if any accumulated in previous state updates not available; can't access builder here
+                // (Future improvement: refactor for finer-grained partial capture)
+                _state.value = _state.value.copy(
+                    isTranslating = false,
+                    processingStatus = null,
+                    translationPartial = true
+                )
             } catch (e: Exception) {
                 Log.e(TAG, "Translation failed", e)
                 _state.value = _state.value.copy(
@@ -435,41 +539,121 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    private suspend fun translateFullTextChunked(text: String, targetLang: String, progressCallback: (Int) -> Unit): String = withContext(Dispatchers.IO) {
-        val chunkSize = 4500 // characters before URL encoding
-        val chunks = mutableListOf<String>()
-        var idx = 0
-        while (idx < text.length) {
-            var end = (idx + chunkSize).coerceAtMost(text.length)
-            // try not to cut in middle of word
-            if (end < text.length) {
-                val nextSpace = text.lastIndexOf(' ', end)
-                if (nextSpace > idx + 1000) { // ensure we don't shrink too much
-                    end = nextSpace
-                }
-            }
-            chunks.add(text.substring(idx, end))
-            idx = end
+    // Manual translation request (decoupled from TTS language change)
+    fun requestTranslation(targetLang: String) {
+        val st = _state.value
+        val original = st.originalExtractedText.ifBlank { st.extractedText }
+        if (original.isBlank()) return
+        val lang = targetLang.lowercase()
+        val key = cacheKey(original, lang)
+        translationCache[key]?.let { cached ->
+            _state.value = _state.value.copy(
+                translatedText = cached,
+                translationLanguage = lang,
+                activeTextSource = TextSource.TRANSLATED,
+                extractedText = if (_state.value.activeTextSource == TextSource.TRANSLATED) cached else _state.value.extractedText,
+                translationProvider = "Cache",
+                translationPartial = false,
+                isTranslating = false
+            )
+            lastTranslatedLanguage = lang
+            return
         }
-        if (chunks.isEmpty()) return@withContext ""
-        val sb = StringBuilder(text.length + 64)
-        for ((i, chunk) in chunks.withIndex()) {
-            val translatedChunk = translateChunk(chunk, targetLang)
-            sb.append(translatedChunk)
-            if (i < chunks.lastIndex) sb.append('\n')
-            val progress = ((i + 1) * 100f / chunks.size).toInt()
-            progressCallback(progress)
-            if (!isActive) throw CancellationException()
-            delay(150) // small pacing delay
-        }
-        sb.toString()
+        startTranslation(original, lang)
     }
 
     private fun buildFormBody(params: Map<String, String>): ByteArray = params.entries.joinToString("&") { (k,v) ->
         "${java.net.URLEncoder.encode(k, "UTF-8")}=${java.net.URLEncoder.encode(v, "UTF-8")}"
     }.toByteArray()
 
-    private fun translateChunk(chunk: String, targetLang: String): String {
+    private data class TranslationResult(val text: String, val provider: String)
+
+    private fun translateChunk(chunk: String, targetLang: String): TranslationResult {
+        val apiKey = BuildConfig.GEMINI_API_KEY
+        if (!apiKey.isNullOrBlank()) {
+            val gem = translateChunkGemini(chunk, targetLang, apiKey)
+            if (gem != null) return TranslationResult(gem, "Gemini")
+        }
+        val libre = translateChunkLibre(chunk, targetLang)
+        val provider = if (!apiKey.isNullOrBlank()) "Libre" else "Libre" // explicit for clarity
+        return TranslationResult(libre, provider)
+    }
+
+    private fun translateChunkGemini(chunk: String, targetLang: String, apiKey: String): String? {
+        return try {
+            // Simple prompt-based translation. For large scale move to official client.
+            val prompt = "Translate the following text into language code '$targetLang'. Return only translated text without extra commentary.\n\n$chunk"
+            val url = java.net.URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=$apiKey")
+            val conn = (url.openConnection() as java.net.HttpURLConnection).apply {
+                requestMethod = "POST"
+                setRequestProperty("Content-Type", "application/json")
+                connectTimeout = 10000
+                readTimeout = 25000
+                doOutput = true
+            }
+            val escapedPrompt = prompt.replace("\"", "\\\"")
+            val payload = """{"contents":[{"parts":[{"text":"$escapedPrompt"}]}]}"""
+            conn.outputStream.use { it.write(payload.toByteArray()) }
+            val code = conn.responseCode
+            val response = try { conn.inputStream.bufferedReader().readText() } catch (e: Exception) { conn.errorStream?.bufferedReader()?.readText() ?: "" }
+            if (code != 200) {
+                Log.w(TAG, "Gemini translation HTTP $code: ${response.take(120)}")
+                return null
+            }
+            // Minimal JSON extraction
+            val root = org.json.JSONObject(response)
+            val candidates = root.optJSONArray("candidates") ?: return null
+            if (candidates.length() == 0) return null
+            val content = candidates.getJSONObject(0).optJSONObject("content") ?: return null
+            val parts = content.optJSONArray("parts") ?: return null
+            if (parts.length() == 0) return null
+            var text = parts.getJSONObject(0).optString("text")
+            text = text.trim()
+            // Remove leading labels
+            text = text.removePrefix("Translation:").removePrefix("translation:").trim()
+            // Strip enclosing quotes if present
+            if ((text.startsWith('"') && text.endsWith('"') && text.length > 1) ||
+                (text.startsWith('“') && text.endsWith('”') && text.length > 1)) {
+                text = text.substring(1, text.length - 1).trim()
+            }
+            text.ifBlank { null }
+        } catch (e: Exception) {
+            Log.e(TAG, "Gemini chunk translation error: ${e.message}")
+            null
+        }
+    }
+
+    // Simple heuristic language detection for a few common languages
+    private fun detectLanguage(text: String): String? {
+        if (text.length < 20) return null
+        val sample = text.take(4000)
+        var latinLetters = 0
+        var nonLatin = 0
+        var spanishHits = 0
+        var frenchHits = 0
+        for (ch in sample) {
+            when {
+                ch.isLetter() && ch.code < 128 -> latinLetters++
+                ch.isLetter() -> nonLatin++
+            }
+            when (ch.lowercaseChar()) {
+                'ñ','¿','¡' -> spanishHits += 2
+                'á','é','í','ó','ú' -> spanishHits++
+                'à','ç','è','é','ê','ô','ù' -> frenchHits++
+            }
+        }
+        val totalLetters = latinLetters + nonLatin
+        if (totalLetters == 0) return null
+        val asciiRatio = latinLetters.toDouble() / totalLetters
+        return when {
+            spanishHits >= 5 && spanishHits > frenchHits -> "es"
+            frenchHits >= 4 && frenchHits >= spanishHits -> "fr"
+            asciiRatio > 0.9 && nonLatin < 5 -> "en"
+            else -> null
+        }
+    }
+
+    private fun translateChunkLibre(chunk: String, targetLang: String): String {
         return try {
             val url = java.net.URL("https://libretranslate.de/translate")
             val conn = (url.openConnection() as java.net.HttpURLConnection).apply {
@@ -488,11 +672,11 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
             conn.outputStream.use { it.write(body) }
             val code = conn.responseCode
             val response = try { conn.inputStream.bufferedReader().readText() } catch (e: Exception) { conn.errorStream?.bufferedReader()?.readText() ?: "" }
-            if (code != 200) return chunk // fallback to original
+            if (code != 200) return chunk
             val json = org.json.JSONObject(response)
             json.optString("translatedText", chunk)
         } catch (e: Exception) {
-            Log.e(TAG, "Chunk translation error: ${e.message}")
+            Log.e(TAG, "Libre chunk translation error: ${e.message}")
             chunk
         }
     }

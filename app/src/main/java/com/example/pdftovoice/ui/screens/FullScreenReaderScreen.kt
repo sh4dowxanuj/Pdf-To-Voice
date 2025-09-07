@@ -352,6 +352,7 @@ private fun TranslationBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            var manualLang by remember { mutableStateOf("") }
             when {
                 state.isTranslating -> {
                     CircularProgressIndicator(
@@ -373,18 +374,39 @@ private fun TranslationBar(
                     )
                     if (state.translationLanguage != null) {
                         Text(
-                            text = "Lang: ${state.translationLanguage}",
+                            text = "Lang: ${state.translationLanguage}${state.translationProvider?.let { ", ${it}" } ?: ""}${if (state.translationPartial) " (partial)" else ""}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.secondary
                         )
                     }
                 }
                 else -> {
-                    Text(
-                        text = "No translation yet",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            text = if (state.isGeminiAvailable) "No translation yet" else "Gemini key missing – using Libre fallback",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = manualLang,
+                            onValueChange = { manualLang = it.take(8) },
+                            singleLine = true,
+                            placeholder = { Text("Target lang code (e.g. es, fr)") },
+                            modifier = Modifier.width(190.dp),
+                            textStyle = MaterialTheme.typography.labelSmall,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(4.dp))
+                    val vm = androidx.lifecycle.viewmodel.compose.viewModel<PdfToVoiceViewModel>()
+                    Button(
+                        enabled = manualLang.trim().length in 2..8,
+                        onClick = { vm.requestTranslation(manualLang.trim()) },
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text("Translate")
+                    }
                 }
             }
             if (state.translationError != null) {
