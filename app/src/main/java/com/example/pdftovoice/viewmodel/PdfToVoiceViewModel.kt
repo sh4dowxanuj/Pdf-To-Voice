@@ -12,6 +12,11 @@ import com.example.pdftovoice.tts.Language
 import com.example.pdftovoice.utils.FileUtils
 import com.example.pdftovoice.utils.PerformanceUtils
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,8 +43,18 @@ data class PdfToVoiceState(
     val currentlyReadingSegment: String = "",
     val isAnalyzing: Boolean = false,
     val extractionMethod: PdfProcessor.ExtractionMethod? = null,
-    val processingStatus: String? = null
+    val processingStatus: String? = null,
+    // Translation related state
+    val originalExtractedText: String = "",
+    val translatedText: String? = null,
+    val activeTextSource: TextSource = TextSource.ORIGINAL,
+    val isTranslating: Boolean = false,
+    val translationProgress: Int = 0, // percentage 0..100
+    val translationLanguage: String? = null,
+    val translationError: String? = null
 )
+
+enum class TextSource { ORIGINAL, TRANSLATED }
 
 class PdfToVoiceViewModel(application: Application) : AndroidViewModel(application) {
     
@@ -265,6 +280,7 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
 
                 _state.value = _state.value.copy(
                     extractedText = result.text,
+                    originalExtractedText = result.text,
                     extractionMethod = result.method,
                     isLoading = false,
                     processingStatus = null,
@@ -336,7 +352,8 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
     fun setLanguage(language: Language) {
         ttsManager.setLanguage(language)
         updateLocale(language)
-        translateExtractedTextIfNeeded(language)
+    // Start translation asynchronously if needed without overwriting original prematurely
+    startTranslationIfNeeded(language)
     }
 
     private fun updateLocale(language: Language) {
@@ -348,32 +365,135 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
         resources.updateConfiguration(config, resources.displayMetrics)
     }
 
-    private fun translateExtractedTextIfNeeded(language: Language) {
-        val text = _state.value.extractedText
-        if (text.isBlank()) return
-        viewModelScope.launch {
-            val translated = translateTextLibre(text, language.code)
-            setExtractedText(translated)
+    private var lastTranslatedLanguage: String? = null
+    private var translationJob: Job? = null
+
+    private fun startTranslationIfNeeded(language: Language) {
+        val st = _state.value
+        val original = st.originalExtractedText.ifBlank { st.extractedText }
+        if (original.isBlank()) return
+        if (language.code == lastTranslatedLanguage && st.translatedText != null) return
+        // Avoid translating if text already appears to be in that language (very naive heuristic)
+        if (language.code.equals("en", true) && original.matches(Regex("[A-Za-z0-9\\s,.;:'\"!?()-]+"))) return
+        startTranslation(original, language.code)
+    }
+
+    fun toggleTextSource() {
+        val st = _state.value
+        val newSource = if (st.activeTextSource == TextSource.ORIGINAL && st.translatedText != null) TextSource.TRANSLATED else TextSource.ORIGINAL
+        _state.value = st.copy(
+            activeTextSource = newSource,
+            extractedText = if (newSource == TextSource.TRANSLATED) st.translatedText ?: st.originalExtractedText else st.originalExtractedText
+        )
+        // Restart TTS if playing
+        if (isPlaying.value) {
+            stopReading()
+            playText()
         }
     }
 
-    // LibreTranslate API call (no API key required)
-    private suspend fun translateTextLibre(text: String, targetLang: String): String {
+    fun cancelTranslation() {
+        translationJob?.cancel()
+        _state.value = _state.value.copy(isTranslating = false, processingStatus = null)
+    }
+
+    private fun startTranslation(original: String, targetLang: String) {
+        translationJob?.cancel()
+        translationJob = viewModelScope.launch {
+            try {
+                _state.value = _state.value.copy(
+                    isTranslating = true,
+                    translationProgress = 0,
+                    translationLanguage = targetLang,
+                    translationError = null,
+                    processingStatus = "Translating..."
+                )
+                val translated = translateFullTextChunked(original, targetLang) { progress ->
+                    _state.value = _state.value.copy(
+                        translationProgress = progress,
+                        processingStatus = "Translating... $progress%"
+                    )
+                }
+                lastTranslatedLanguage = targetLang
+                _state.value = _state.value.copy(
+                    translatedText = translated,
+                    isTranslating = false,
+                    processingStatus = null,
+                    activeTextSource = if (_state.value.activeTextSource == TextSource.TRANSLATED || _state.value.translatedText == null) TextSource.TRANSLATED else _state.value.activeTextSource,
+                    extractedText = if (_state.value.activeTextSource == TextSource.TRANSLATED) translated else _state.value.extractedText
+                )
+            } catch (e: CancellationException) {
+                Log.w(TAG, "Translation cancelled")
+            } catch (e: Exception) {
+                Log.e(TAG, "Translation failed", e)
+                _state.value = _state.value.copy(
+                    translationError = e.message,
+                    isTranslating = false,
+                    processingStatus = null
+                )
+            }
+        }
+    }
+
+    private suspend fun translateFullTextChunked(text: String, targetLang: String, progressCallback: (Int) -> Unit): String = withContext(Dispatchers.IO) {
+        val chunkSize = 4500 // characters before URL encoding
+        val chunks = mutableListOf<String>()
+        var idx = 0
+        while (idx < text.length) {
+            var end = (idx + chunkSize).coerceAtMost(text.length)
+            // try not to cut in middle of word
+            if (end < text.length) {
+                val nextSpace = text.lastIndexOf(' ', end)
+                if (nextSpace > idx + 1000) { // ensure we don't shrink too much
+                    end = nextSpace
+                }
+            }
+            chunks.add(text.substring(idx, end))
+            idx = end
+        }
+        if (chunks.isEmpty()) return@withContext ""
+        val sb = StringBuilder(text.length + 64)
+        for ((i, chunk) in chunks.withIndex()) {
+            val translatedChunk = translateChunk(chunk, targetLang)
+            sb.append(translatedChunk)
+            if (i < chunks.lastIndex) sb.append('\n')
+            val progress = ((i + 1) * 100f / chunks.size).toInt()
+            progressCallback(progress)
+            if (!isActive) throw CancellationException()
+            delay(150) // small pacing delay
+        }
+        sb.toString()
+    }
+
+    private fun buildFormBody(params: Map<String, String>): ByteArray = params.entries.joinToString("&") { (k,v) ->
+        "${java.net.URLEncoder.encode(k, "UTF-8")}=${java.net.URLEncoder.encode(v, "UTF-8")}"
+    }.toByteArray()
+
+    private fun translateChunk(chunk: String, targetLang: String): String {
         return try {
-            val url = "https://libretranslate.de/translate"
-            val requestBody = "q=${java.net.URLEncoder.encode(text, "UTF-8")}&source=auto&target=$targetLang&format=text"
-            val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
-            conn.requestMethod = "POST"
-            conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
-            conn.doOutput = true
-            conn.outputStream.use { it.write(requestBody.toByteArray()) }
-            val response = conn.inputStream.bufferedReader().readText()
-            // Parse response: {\"translatedText\":\"...\"}
-            val regex = "\\\"translatedText\\\":\\\"(.*?)\\\"".toRegex()
-            regex.find(response)?.groups?.get(1)?.value ?: text
+            val url = java.net.URL("https://libretranslate.de/translate")
+            val conn = (url.openConnection() as java.net.HttpURLConnection).apply {
+                requestMethod = "POST"
+                setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
+                connectTimeout = 8000
+                readTimeout = 20000
+                doOutput = true
+            }
+            val body = buildFormBody(mapOf(
+                "q" to chunk,
+                "source" to "auto",
+                "target" to targetLang,
+                "format" to "text"
+            ))
+            conn.outputStream.use { it.write(body) }
+            val code = conn.responseCode
+            val response = try { conn.inputStream.bufferedReader().readText() } catch (e: Exception) { conn.errorStream?.bufferedReader()?.readText() ?: "" }
+            if (code != 200) return chunk // fallback to original
+            val json = org.json.JSONObject(response)
+            json.optString("translatedText", chunk)
         } catch (e: Exception) {
-            Log.e("PdfToVoiceViewModel", "LibreTranslate failed: ${e.message}")
-            text
+            Log.e(TAG, "Chunk translation error: ${e.message}")
+            chunk
         }
     }
     
@@ -381,11 +501,12 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
         // Cancel any ongoing operations
         currentPdfJob?.cancel()
         currentAnalysisJob?.cancel()
+    translationJob?.cancel()
         
         // Stop any ongoing TTS
         ttsManager.stop()
         
-        _state.value = PdfToVoiceState(isTtsInitialized = _state.value.isTtsInitialized)
+    _state.value = PdfToVoiceState(isTtsInitialized = _state.value.isTtsInitialized)
     }
     
     fun clearError() {
@@ -452,6 +573,7 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
     fun setExtractedText(text: String) {
         _state.value = _state.value.copy(
             extractedText = text,
+            originalExtractedText = text,
             isLoading = false,
             errorMessage = null
         )

@@ -41,6 +41,7 @@ import com.example.pdftovoice.ui.system.ResponsiveDimensions.horizontalPadding
 import com.example.pdftovoice.ui.system.ResponsiveLayout.isCompact
 import com.example.pdftovoice.viewmodel.PdfToVoiceViewModel
 import com.example.pdftovoice.viewmodel.PdfToVoiceState
+import com.example.pdftovoice.viewmodel.TextSource
 import kotlinx.coroutines.delay
 
 /**
@@ -76,6 +77,7 @@ fun FullScreenReaderScreen(
     var showControls by remember { mutableStateOf(true) }
     var showPlayerControls by remember { mutableStateOf(true) }
     var showSettings by remember { mutableStateOf(false) }
+    var showTranslateMenu by remember { mutableStateOf(false) }
     
     // Auto-hide controls after 5 seconds of inactivity (longer for better UX)
     LaunchedEffect(showControls) {
@@ -165,7 +167,22 @@ fun FullScreenReaderScreen(
                 isCompact = isCompact,
                 onClose = onClose,
                 onSettings = { showSettings = true },
+                onTranslateToggle = { showTranslateMenu = !showTranslateMenu },
+                isTranslated = state.translatedText != null,
+                activeSource = state.activeTextSource,
                 modifier = Modifier.height(controlsHeight)
+            )
+        }
+
+        if (showTranslateMenu && showControls) {
+            TranslationBar(
+                state = state,
+                onToggleSource = { viewModel.toggleTextSource() },
+                onCancel = { viewModel.cancelTranslation() },
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = controlsHeight + 4.dp)
+                    .zIndex(11f)
             )
         }
         
@@ -229,6 +246,9 @@ private fun TopControlsBar(
     isCompact: Boolean,
     onClose: () -> Unit,
     onSettings: () -> Unit,
+    onTranslateToggle: () -> Unit,
+    isTranslated: Boolean,
+    activeSource: TextSource,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -272,17 +292,107 @@ private fun TopControlsBar(
                     .padding(horizontal = 16.dp),
                 textAlign = TextAlign.Center
             )
-            
-            // Settings button
-            IconButton(
-                onClick = onSettings,
-                modifier = Modifier.size(if (isCompact) 40.dp else 48.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = stringResource(id = R.string.reading_settings),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(if (isCompact) 20.dp else 24.dp)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Translation toggle button
+                FilledTonalButton(
+                    onClick = onTranslateToggle,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier.height(if (isCompact) 36.dp else 40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Translate,
+                        contentDescription = "Translate",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = when {
+                            !isTranslated -> "Original"
+                            activeSource == TextSource.ORIGINAL -> "Original"
+                            else -> "Translated"
+                        },
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+                // Settings button
+                IconButton(
+                    onClick = onSettings,
+                    modifier = Modifier.size(if (isCompact) 40.dp else 48.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = stringResource(id = R.string.reading_settings),
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(if (isCompact) 20.dp else 24.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TranslationBar(
+    state: PdfToVoiceState,
+    onToggleSource: () -> Unit,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        tonalElevation = 6.dp,
+        shadowElevation = 8.dp,
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+        modifier = modifier
+            .padding(horizontal = 16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            when {
+                state.isTranslating -> {
+                    CircularProgressIndicator(
+                        progress = state.translationProgress / 100f,
+                        modifier = Modifier.size(28.dp),
+                        strokeWidth = 3.dp
+                    )
+                    Column(Modifier.weight(1f)) {
+                        Text("Translating… ${state.translationProgress}%", style = MaterialTheme.typography.labelLarge)
+                        state.translationLanguage?.let { Text("→ $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
+                    }
+                    TextButton(onClick = onCancel) { Text("Cancel") }
+                }
+                state.translatedText != null -> {
+                    AssistChip(
+                        onClick = onToggleSource,
+                        label = { Text(if (state.activeTextSource == TextSource.ORIGINAL) "Show Translated" else "Show Original") },
+                        leadingIcon = { Icon(Icons.Default.Translate, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    )
+                    if (state.translationLanguage != null) {
+                        Text(
+                            text = "Lang: ${state.translationLanguage}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                }
+                else -> {
+                    Text(
+                        text = "No translation yet",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            if (state.translationError != null) {
+                Text(
+                    text = state.translationError,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.weight(1f)
                 )
             }
         }
