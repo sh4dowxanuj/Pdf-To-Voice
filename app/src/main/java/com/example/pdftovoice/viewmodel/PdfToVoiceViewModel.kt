@@ -56,7 +56,9 @@ data class PdfToVoiceState(
     // Additional translation diagnostics
     val isGeminiAvailable: Boolean = false,
     val translationProvider: String? = null, // Gemini | Libre | Mixed
-    val translationPartial: Boolean = false
+    val translationPartial: Boolean = false,
+    val translationSyncedWithTts: Boolean = false, // true if current translation target came from TTS language selection
+    val autoRestoreEnabled: Boolean = true
 )
 
 enum class TextSource { ORIGINAL, TRANSLATED }
@@ -361,8 +363,21 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
     fun setLanguage(language: Language) {
         ttsManager.setLanguage(language)
         updateLocale(language)
-    // Start translation asynchronously if needed without overwriting original prematurely
-    startTranslationIfNeeded(language)
+        // Cancel any existing translation and re-translate to match TTS language (primary source of truth)
+        val st = _state.value
+        val original = st.originalExtractedText.ifBlank { st.extractedText }
+        if (original.isBlank()) return
+        translationJob?.cancel()
+        // If heuristic says original already in target language (skip) we still mark sync flag
+        if (detectLanguage(original)?.equals(language.code, true) == true) {
+            _state.value = _state.value.copy(
+                translationLanguage = language.code,
+                translationSyncedWithTts = true,
+                translationProvider = "Skip"
+            )
+            return
+        }
+        startTranslation(original, language.code, syncedWithTts = true)
     }
 
     private fun updateLocale(language: Language) {
@@ -441,7 +456,7 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
     languagePrefs.clearLastTranslation()
     }
 
-    private fun startTranslation(original: String, targetLang: String) {
+    private fun startTranslation(original: String, targetLang: String, syncedWithTts: Boolean = false) {
         translationJob?.cancel()
         translationJob = viewModelScope.launch {
             try {
@@ -465,7 +480,8 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
                     translationError = null,
                     processingStatus = "Translating...",
                     translationProvider = null,
-                    translationPartial = false
+                    translationPartial = false,
+                    translationSyncedWithTts = syncedWithTts
                 )
                 // Streaming chunked translation (memory efficient for very large PDFs)
                 val length = original.length
@@ -502,7 +518,8 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
                         processingStatus = "Translating... $progress%",
                         translatedText = sb.toString(),
                         translationProvider = providersUsed.firstOrNull(),
-                        translationPartial = progress < 100
+                        translationPartial = progress < 100,
+                        translationSyncedWithTts = syncedWithTts
                     )
                     // Short delay to yield UI thread & allow cancellation responsiveness
                     delay(90)
@@ -525,7 +542,8 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
                     activeTextSource = if (_state.value.activeTextSource == TextSource.TRANSLATED || _state.value.translatedText == null) TextSource.TRANSLATED else _state.value.activeTextSource,
                     extractedText = if (_state.value.activeTextSource == TextSource.TRANSLATED) translated else _state.value.extractedText,
                     translationProvider = providerLabel,
-                    translationPartial = false
+                    translationPartial = false,
+                    translationSyncedWithTts = syncedWithTts
                 )
                 // Persist translation target for same original text (hash-based)
                 languagePrefs.saveLastTranslation(targetLang, original.hashCode())
@@ -539,14 +557,16 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
                 _state.value = _state.value.copy(
                     isTranslating = false,
                     processingStatus = null,
-                    translationPartial = true
+                    translationPartial = true,
+                    translationSyncedWithTts = syncedWithTts
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "Translation failed", e)
                 _state.value = _state.value.copy(
                     translationError = e.message,
                     isTranslating = false,
-                    processingStatus = null
+                    processingStatus = null,
+                    translationSyncedWithTts = syncedWithTts
                 )
             }
         }
@@ -568,7 +588,8 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
                 extractedText = if (_state.value.activeTextSource == TextSource.TRANSLATED) cached else _state.value.extractedText,
                 translationProvider = "Cache",
                 translationPartial = false,
-                isTranslating = false
+                isTranslating = false,
+                translationSyncedWithTts = false
             )
             lastTranslatedLanguage = lang
             return
@@ -579,7 +600,7 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
             // We don't persist full translated text (could be huge). Trigger fresh translation silently with status.
             Log.d(TAG, "Re-translating with persisted language=$lang for same document")
         }
-        startTranslation(original, lang)
+        startTranslation(original, lang, syncedWithTts = false)
     }
 
     private fun buildFormBody(params: Map<String, String>): ByteArray = params.entries.joinToString("&") { (k,v) ->
@@ -779,6 +800,40 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
     fun getPitch(): Float {
         return ttsManager.pitch.value
     }
+
+    fun setAutoRestore(enabled: Boolean) {
+        languagePrefs.setAutoRestore(enabled)
+        _state.value = _state.value.copy(autoRestoreEnabled = enabled)
+    }
+
+    // Disk cache helpers (added late due to merge)
+    private fun translationDiskKey(original: String, lang: String): String {
+        val hash = (original.length.toString() + ":" + original.hashCode() + ":" + lang.lowercase()).hashCode()
+        return "tr_${hash}.cache"
+    }
+    private fun readDiskCachedTranslation(original: String, lang: String): String? {
+        return try {
+            val dir = java.io.File(getApplication<Application>().filesDir, "translation_cache")
+            val f = java.io.File(dir, translationDiskKey(original, lang))
+            if (f.exists() && f.length() > 0 && f.length() < 2_500_000) f.readText() else null
+        } catch (e: Exception) { null }
+    }
+    private fun writeDiskCachedTranslation(original: String, lang: String, translated: String) {
+        try {
+            if (translated.length > 400_000) return
+            val dir = java.io.File(getApplication<Application>().filesDir, "translation_cache").apply { mkdirs() }
+            val f = java.io.File(dir, translationDiskKey(original, lang))
+            f.writeText(translated)
+            pruneDiskCache(dir)
+        } catch (_: Exception) {}
+    }
+    private fun pruneDiskCache(dir: java.io.File) {
+        try {
+            val files = dir.listFiles()?.sortedByDescending { it.lastModified() } ?: return
+            if (files.size <= 8) return
+            files.drop(8).forEach { it.delete() }
+        } catch (_: Exception) {}
+    }
     
     fun setExtractedText(text: String) {
         _state.value = _state.value.copy(
@@ -787,6 +842,27 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
             isLoading = false,
             errorMessage = null
         )
+        if (languagePrefs.isAutoRestoreEnabled()) {
+            val persistedLang = languagePrefs.getLastTranslation(text.hashCode())
+            if (persistedLang != null && persistedLang.length in 2..8 && !_state.value.isTranslating) {
+                val disk = readDiskCachedTranslation(text, persistedLang)
+                if (disk != null) {
+                    Log.d(TAG, "Loaded translation from disk cache for lang=$persistedLang (setExtractedText)")
+                    _state.value = _state.value.copy(
+                        translatedText = disk,
+                        translationLanguage = persistedLang,
+                        activeTextSource = TextSource.TRANSLATED,
+                        extractedText = disk,
+                        translationProvider = "DiskCache",
+                        translationPartial = false,
+                        translationProgress = 100
+                    )
+                } else {
+                    Log.d(TAG, "Auto re-translating to persisted language=$persistedLang on text load")
+                    startTranslation(text, persistedLang, syncedWithTts = false)
+                }
+            }
+        }
     }
 
     override fun onCleared() {

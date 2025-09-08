@@ -415,6 +415,15 @@ private fun TranslationBar(
                                     }
                                 }
                             }
+                            if (state.translationSyncedWithTts) {
+                                Spacer(Modifier.width(6.dp))
+                                AssistChip(
+                                    onClick = {},
+                                    enabled = false,
+                                    label = { Text("Auto (TTS)") },
+                                    leadingIcon = { Icon(Icons.Default.SettingsVoice, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                                )
+                            }
                         }
                         if (state.translationLanguage != null) {
                             Spacer(Modifier.height(4.dp))
@@ -672,6 +681,12 @@ private fun FullScreenSettingsDialog(
                         valueRange = 0.5f..2.0f,
                         steps = 6
                     )
+                }
+                // Auto-restore translation toggle
+                val st by viewModel.state.collectAsState()
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Auto-restore translation", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                    Switch(checked = st.autoRestoreEnabled, onCheckedChange = { viewModel.setAutoRestore(it) })
                 }
             }
         },

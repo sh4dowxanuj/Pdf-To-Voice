@@ -14,6 +14,7 @@ class LanguagePreferences(context: Context) {
         private const val KEY_LANGUAGE_NAME = "selected_language_name"
     private const val KEY_TRANSLATION_LANG = "last_translation_lang"
     private const val KEY_TRANSLATION_TEXT_HASH = "last_translation_hash"
+    private const val KEY_AUTO_RESTORE = "auto_restore_translation"
     }
     
     fun saveSelectedLanguage(language: Language) {
@@ -94,5 +95,11 @@ class LanguagePreferences(context: Context) {
             .remove(KEY_TRANSLATION_LANG)
             .remove(KEY_TRANSLATION_TEXT_HASH)
             .apply()
+    }
+
+    fun isAutoRestoreEnabled(): Boolean = sharedPreferences.getBoolean(KEY_AUTO_RESTORE, true)
+
+    fun setAutoRestore(enabled: Boolean) {
+        sharedPreferences.edit().putBoolean(KEY_AUTO_RESTORE, enabled).apply()
     }
 }
