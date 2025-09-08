@@ -465,39 +465,48 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
                     translationProvider = null,
                     translationPartial = false
                 )
-                // Inline chunked translation to allow partial preservation
-                val chunkSize = 4500
-                val chunks = mutableListOf<String>()
-                var idx = 0
-                while (idx < original.length) {
-                    var end = (idx + chunkSize).coerceAtMost(original.length)
-                    if (end < original.length) {
-                        val nextSpace = original.lastIndexOf(' ', end)
-                        if (nextSpace > idx + 1000) end = nextSpace
-                    }
-                    chunks.add(original.substring(idx, end))
-                    idx = end
+                // Streaming chunked translation (memory efficient for very large PDFs)
+                val length = original.length
+                // Dynamic chunk sizing: larger texts => smaller chunks to reduce error probability & latency per request
+                val baseChunk = when {
+                    length > 500_000 -> 1200
+                    length > 250_000 -> 1400
+                    length > 120_000 -> 1600
+                    else -> 1800
                 }
-                val sb = StringBuilder(original.length + 64)
+                val totalChunks = (length + baseChunk - 1) / baseChunk
+                val sb = StringBuilder((length.coerceAtMost(120_000)) + 64) // avoid pre-growing to full for huge docs
                 val providersUsed = mutableSetOf<String>()
-                for ((i, chunk) in chunks.withIndex()) {
-                    if (!isActive) break
-                    val tr = translateChunk(chunk, targetLang)
+                var producedChars = 0
+                var chunkIndex = 0
+                var cursor = 0
+                while (cursor < length && isActive) {
+                    var end = (cursor + baseChunk).coerceAtMost(length)
+                    if (end < length) {
+                        val nextSpace = original.lastIndexOf(' ', end)
+                        if (nextSpace > cursor + 400) end = nextSpace // keep reasonable minimum
+                    }
+                    val piece = original.substring(cursor, end)
+                    val tr = translateChunk(piece, targetLang)
                     sb.append(tr.text)
-                    if (i < chunks.lastIndex) sb.append('\n')
+                    producedChars += piece.length
                     providersUsed += tr.provider
-                    val progress = ((i + 1) * 100f / chunks.size).toInt()
-                    // Publish partial progress & text
-                    val partial = sb.toString()
+                    cursor = end
+                    chunkIndex++
+                    if (cursor < length) sb.append('\n')
+                    val progress = ((chunkIndex) * 100f / totalChunks).toInt().coerceAtMost(100)
                     _state.value = _state.value.copy(
                         translationProgress = progress,
                         processingStatus = "Translating... $progress%",
-                        translatedText = partial,
+                        translatedText = sb.toString(),
                         translationProvider = providersUsed.firstOrNull(),
                         translationPartial = progress < 100
                     )
-                    delay(150)
+                    // Short delay to yield UI thread & allow cancellation responsiveness
+                    delay(90)
                 }
+                // If job cancelled early, loop exit handles partial state already
+                if (!isActive) return@launch
                 var translated = sb.toString()
                 // Whitespace normalization (collapse 3+ blank lines to 2)
                 translated = translated.replace(Regex("\n{3,}"), "\n\n").trim()
@@ -568,7 +577,7 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
 
     private data class TranslationResult(val text: String, val provider: String)
 
-    private fun translateChunk(chunk: String, targetLang: String): TranslationResult {
+    private suspend fun translateChunk(chunk: String, targetLang: String): TranslationResult {
         val apiKey = BuildConfig.GEMINI_API_KEY
         if (apiKey.isNullOrBlank()) {
             throw IllegalStateException("Gemini API key missing. Set GEMINI_API_KEY in local.properties or env.")
@@ -578,7 +587,7 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
         throw IllegalStateException("Gemini translation failed for chunk (length=${chunk.length}). See previous log for HTTP details.")
     }
 
-    private fun translateChunkGemini(chunk: String, targetLang: String, apiKey: String): String? {
+    private suspend fun translateChunkGemini(chunk: String, targetLang: String, apiKey: String): String? {
         val model = (BuildConfig.GEMINI_TRANSLATION_MODEL ?: "gemini-1.5-flash").ifBlank { "gemini-1.5-flash" }
         // Retry strategy for transient failures
         val maxAttempts = 3
@@ -593,26 +602,29 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
                     append("'. Return ONLY the translated text.\n\n")
                     append(chunk)
                 }
-                val url = java.net.URL("https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=$apiKey")
-                val conn = (url.openConnection() as java.net.HttpURLConnection).apply {
-                    requestMethod = "POST"
-                    setRequestProperty("Content-Type", "application/json")
-                    connectTimeout = 12000
-                    readTimeout = 30000
-                    doOutput = true
-                }
                 val escapedPrompt = prompt.replace("\"", "\\\"")
                 val payload = """{"contents":[{"parts":[{"text":"$escapedPrompt"}]}]}"""
-                conn.outputStream.use { it.write(payload.toByteArray()) }
-                val code = conn.responseCode
-                val response = try { conn.inputStream.bufferedReader().readText() } catch (e: Exception) { conn.errorStream?.bufferedReader()?.readText() ?: "" }
+                val (code, response) = withContext(Dispatchers.IO) {
+                    val url = java.net.URL("https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=$apiKey")
+                    val conn = (url.openConnection() as java.net.HttpURLConnection).apply {
+                        requestMethod = "POST"
+                        setRequestProperty("Content-Type", "application/json")
+                        connectTimeout = 12000
+                        readTimeout = 30000
+                        doOutput = true
+                    }
+                    conn.outputStream.use { it.write(payload.toByteArray()) }
+                    val codeLocal = conn.responseCode
+                    val respLocal = try { conn.inputStream.bufferedReader().readText() } catch (e: Exception) { conn.errorStream?.bufferedReader()?.readText() ?: "" }
+                    codeLocal to respLocal
+                }
                 if (code != 200) {
                     lastError = "HTTP $code ${response.take(160)}"
                     val retryable = code in listOf(429,500,502,503,504)
                     Log.w(TAG, "Gemini attempt $attempt/$maxAttempts failed: $lastError retryable=$retryable")
                     if (!retryable) return null
                     // Backoff
-                    kotlinx.coroutines.runBlocking { kotlinx.coroutines.delay(300L * attempt) }
+                    delay(300L * attempt)
                     continue
                 }
                 val root = org.json.JSONObject(response)
@@ -645,7 +657,7 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
                 lastError = e.message
                 Log.e(TAG, "Gemini attempt $attempt error: ${e.message}")
                 // Backoff before next attempt
-                kotlinx.coroutines.runBlocking { kotlinx.coroutines.delay(250L * attempt) }
+                delay(250L * attempt)
             }
         }
         Log.e(TAG, "Gemini translation failed after $maxAttempts attempts: $lastError")
