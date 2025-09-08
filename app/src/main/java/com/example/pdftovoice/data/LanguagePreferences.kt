@@ -12,6 +12,8 @@ class LanguagePreferences(context: Context) {
     companion object {
         private const val KEY_LANGUAGE_CODE = "selected_language_code"
         private const val KEY_LANGUAGE_NAME = "selected_language_name"
+    private const val KEY_TRANSLATION_LANG = "last_translation_lang"
+    private const val KEY_TRANSLATION_TEXT_HASH = "last_translation_hash"
     }
     
     fun saveSelectedLanguage(language: Language) {
@@ -71,6 +73,26 @@ class LanguagePreferences(context: Context) {
         sharedPreferences.edit()
             .remove(KEY_LANGUAGE_CODE)
             .remove(KEY_LANGUAGE_NAME)
+            .apply()
+    }
+
+    // Translation persistence
+    fun saveLastTranslation(targetLang: String, originalHash: Int) {
+        sharedPreferences.edit()
+            .putString(KEY_TRANSLATION_LANG, targetLang)
+            .putInt(KEY_TRANSLATION_TEXT_HASH, originalHash)
+            .apply()
+    }
+
+    fun getLastTranslation(originalHash: Int): String? {
+        val savedHash = sharedPreferences.getInt(KEY_TRANSLATION_TEXT_HASH, Int.MIN_VALUE)
+        return if (savedHash == originalHash) sharedPreferences.getString(KEY_TRANSLATION_LANG, null) else null
+    }
+
+    fun clearLastTranslation() {
+        sharedPreferences.edit()
+            .remove(KEY_TRANSLATION_LANG)
+            .remove(KEY_TRANSLATION_TEXT_HASH)
             .apply()
     }
 }

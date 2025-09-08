@@ -67,6 +67,7 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
     private val pdfProcessor = PdfProcessor(application)
     private val pdfTypeDetector = PdfTypeDetector(application)
     private val ttsManager = TtsManager(application)
+    private val languagePrefs = com.example.pdftovoice.data.LanguagePreferences(application)
     
     private val _state = MutableStateFlow(PdfToVoiceState())
     val state: StateFlow<PdfToVoiceState> = _state.asStateFlow()
@@ -437,6 +438,7 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
             translationProgress = 0,
             translationError = null
         )
+    languagePrefs.clearLastTranslation()
     }
 
     private fun startTranslation(original: String, targetLang: String) {
@@ -525,6 +527,8 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
                     translationProvider = providerLabel,
                     translationPartial = false
                 )
+                // Persist translation target for same original text (hash-based)
+                languagePrefs.saveLastTranslation(targetLang, original.hashCode())
                 // Cache result
                 val key = cacheKey(original, targetLang)
                 translationCache[key] = translated
@@ -554,6 +558,7 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
         val original = st.originalExtractedText.ifBlank { st.extractedText }
         if (original.isBlank()) return
         val lang = targetLang.lowercase()
+        // If same original text has been translated before and matches requested language, reuse cached or persisted state
         val key = cacheKey(original, lang)
         translationCache[key]?.let { cached ->
             _state.value = _state.value.copy(
@@ -567,6 +572,12 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
             )
             lastTranslatedLanguage = lang
             return
+        }
+        // Attempt automatic restoration if persisted language matches but cache entry expired (user reopened app)
+        val persistedLang = languagePrefs.getLastTranslation(original.hashCode())
+        if (persistedLang == lang) {
+            // We don't persist full translated text (could be huge). Trigger fresh translation silently with status.
+            Log.d(TAG, "Re-translating with persisted language=$lang for same document")
         }
         startTranslation(original, lang)
     }
