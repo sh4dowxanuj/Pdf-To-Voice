@@ -383,7 +383,7 @@ private fun TranslationBar(
                 else -> {
                     Column(Modifier.weight(1f)) {
                         Text(
-                            text = if (state.isGeminiAvailable) "No translation yet" else "Gemini key missing – using Libre fallback",
+                            text = if (state.isGeminiAvailable) "No translation yet" else "Gemini API key missing",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

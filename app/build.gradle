@@ -19,7 +19,9 @@ android {
     if (!geminiApiKey) {
         geminiApiKey = (project.findProperty("GEMINI_API_KEY") ?: System.getenv("GEMINI_API_KEY") ?: "").toString()
     }
-    logger.lifecycle("[Pdf-To-Voice] Gemini API key loaded (non-empty): " + (!geminiApiKey.isEmpty()))
+    def keySource = localProps.exists() && geminiApiKey ? "local.properties" : (project.hasProperty("GEMINI_API_KEY") ? "gradle.properties" : (System.getenv("GEMINI_API_KEY") ? "env" : "none"))
+    def maskedKey = geminiApiKey ? (geminiApiKey.take(6) + "..." + geminiApiKey.takeRight(4)) : "(none)"
+    logger.lifecycle("[Pdf-To-Voice] Gemini API key present: ${!geminiApiKey.isEmpty()} | source: ${keySource} | value(masked): ${maskedKey}")
 
     defaultConfig {
         applicationId "com.example.pdftovoice"
@@ -93,6 +95,13 @@ android {
                 '/META-INF/DEPENDENCIES'
             ]
         }
+        // Exclude unused emulator ABIs to reduce memory during dex/packaging
+        jniLibs {
+            excludes += [
+                '**/x86/*.so',
+                '**/x86_64/*.so'
+            ]
+        }
     }
 }
 
@@ -155,8 +164,7 @@ dependencies {
         exclude group: 'org.bouncycastle'
     }
     
-    // OCR for scanned PDFs
-    implementation 'com.google.android.gms:play-services-mlkit-text-recognition:19.0.0'
+    // OCR for scanned PDFs (use modern ML Kit dependency only; removed legacy play-services variant to reduce method count & memory use)
     implementation 'com.google.mlkit:text-recognition:16.0.0'
     
     // Permission handling

@@ -570,13 +570,14 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
 
     private fun translateChunk(chunk: String, targetLang: String): TranslationResult {
         val apiKey = BuildConfig.GEMINI_API_KEY
-        if (!apiKey.isNullOrBlank()) {
-            val gem = translateChunkGemini(chunk, targetLang, apiKey)
-            if (gem != null) return TranslationResult(gem, "Gemini")
+        if (apiKey.isNullOrBlank()) {
+            // Fail fast – caller will surface error and abort translation
+            throw IllegalStateException("Gemini API key missing. Provide GEMINI_API_KEY in local.properties or Gradle properties.")
         }
-        val libre = translateChunkLibre(chunk, targetLang)
-        val provider = if (!apiKey.isNullOrBlank()) "Libre" else "Libre" // explicit for clarity
-        return TranslationResult(libre, provider)
+        val gem = translateChunkGemini(chunk, targetLang, apiKey)
+        if (gem != null) return TranslationResult(gem, "Gemini")
+        // If Gemini returned null (HTTP or parsing issue), propagate as error so higher layer can stop instead of silently degrading.
+        throw IllegalStateException("Gemini translation failed for chunk (length=${chunk.length}).")
     }
 
     private fun translateChunkGemini(chunk: String, targetLang: String, apiKey: String): String? {
@@ -653,33 +654,7 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    private fun translateChunkLibre(chunk: String, targetLang: String): String {
-        return try {
-            val url = java.net.URL("https://libretranslate.de/translate")
-            val conn = (url.openConnection() as java.net.HttpURLConnection).apply {
-                requestMethod = "POST"
-                setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
-                connectTimeout = 8000
-                readTimeout = 20000
-                doOutput = true
-            }
-            val body = buildFormBody(mapOf(
-                "q" to chunk,
-                "source" to "auto",
-                "target" to targetLang,
-                "format" to "text"
-            ))
-            conn.outputStream.use { it.write(body) }
-            val code = conn.responseCode
-            val response = try { conn.inputStream.bufferedReader().readText() } catch (e: Exception) { conn.errorStream?.bufferedReader()?.readText() ?: "" }
-            if (code != 200) return chunk
-            val json = org.json.JSONObject(response)
-            json.optString("translatedText", chunk)
-        } catch (e: Exception) {
-            Log.e(TAG, "Libre chunk translation error: ${e.message}")
-            chunk
-        }
-    }
+    // Removed LibreTranslate fallback – translation now exclusively uses Gemini.
     
     fun clearPdf() {
         // Cancel any ongoing operations
