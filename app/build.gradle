@@ -46,6 +46,8 @@ android {
 
     // Expose Gemini API key to BuildConfig (empty if not provided)
     buildConfigField "String", "GEMINI_API_KEY", '"' + geminiApiKey.replace('"','') + '"'
+    // Allow changing model without code change (e.g. gemini-1.5-flash, gemini-1.5-pro, gemini-1.5-flash-002)
+    buildConfigField "String", "GEMINI_TRANSLATION_MODEL", '"gemini-1.5-flash"'
     }
 
     buildTypes {

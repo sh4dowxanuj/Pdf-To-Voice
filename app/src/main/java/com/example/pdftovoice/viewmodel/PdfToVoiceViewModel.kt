@@ -571,57 +571,85 @@ class PdfToVoiceViewModel(application: Application) : AndroidViewModel(applicati
     private fun translateChunk(chunk: String, targetLang: String): TranslationResult {
         val apiKey = BuildConfig.GEMINI_API_KEY
         if (apiKey.isNullOrBlank()) {
-            // Fail fast – caller will surface error and abort translation
-            throw IllegalStateException("Gemini API key missing. Provide GEMINI_API_KEY in local.properties or Gradle properties.")
+            throw IllegalStateException("Gemini API key missing. Set GEMINI_API_KEY in local.properties or env.")
         }
-        val gem = translateChunkGemini(chunk, targetLang, apiKey)
-        if (gem != null) return TranslationResult(gem, "Gemini")
-        // If Gemini returned null (HTTP or parsing issue), propagate as error so higher layer can stop instead of silently degrading.
-        throw IllegalStateException("Gemini translation failed for chunk (length=${chunk.length}).")
+        val result = translateChunkGemini(chunk, targetLang, apiKey)
+        if (result != null) return TranslationResult(result, "Gemini")
+        throw IllegalStateException("Gemini translation failed for chunk (length=${chunk.length}). See previous log for HTTP details.")
     }
 
     private fun translateChunkGemini(chunk: String, targetLang: String, apiKey: String): String? {
-        return try {
-            // Simple prompt-based translation. For large scale move to official client.
-            val prompt = "Translate the following text into language code '$targetLang'. Return only translated text without extra commentary.\n\n$chunk"
-            val url = java.net.URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=$apiKey")
-            val conn = (url.openConnection() as java.net.HttpURLConnection).apply {
-                requestMethod = "POST"
-                setRequestProperty("Content-Type", "application/json")
-                connectTimeout = 10000
-                readTimeout = 25000
-                doOutput = true
+        val model = (BuildConfig.GEMINI_TRANSLATION_MODEL ?: "gemini-1.5-flash").ifBlank { "gemini-1.5-flash" }
+        // Retry strategy for transient failures
+        val maxAttempts = 3
+        var attempt = 0
+        var lastError: String? = null
+        while (attempt < maxAttempts) {
+            attempt++
+            try {
+                val prompt = buildString {
+                    append("Translate the following text into language code '")
+                    append(targetLang)
+                    append("'. Return ONLY the translated text.\n\n")
+                    append(chunk)
+                }
+                val url = java.net.URL("https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=$apiKey")
+                val conn = (url.openConnection() as java.net.HttpURLConnection).apply {
+                    requestMethod = "POST"
+                    setRequestProperty("Content-Type", "application/json")
+                    connectTimeout = 12000
+                    readTimeout = 30000
+                    doOutput = true
+                }
+                val escapedPrompt = prompt.replace("\"", "\\\"")
+                val payload = """{"contents":[{"parts":[{"text":"$escapedPrompt"}]}]}"""
+                conn.outputStream.use { it.write(payload.toByteArray()) }
+                val code = conn.responseCode
+                val response = try { conn.inputStream.bufferedReader().readText() } catch (e: Exception) { conn.errorStream?.bufferedReader()?.readText() ?: "" }
+                if (code != 200) {
+                    lastError = "HTTP $code ${response.take(160)}"
+                    val retryable = code in listOf(429,500,502,503,504)
+                    Log.w(TAG, "Gemini attempt $attempt/$maxAttempts failed: $lastError retryable=$retryable")
+                    if (!retryable) return null
+                    // Backoff
+                    kotlinx.coroutines.runBlocking { kotlinx.coroutines.delay(300L * attempt) }
+                    continue
+                }
+                val root = org.json.JSONObject(response)
+                val candidates = root.optJSONArray("candidates") ?: return null
+                if (candidates.length() == 0) return null
+                val first = candidates.getJSONObject(0)
+                // Check for safety block
+                if (first.optString("finishReason").equals("SAFETY", true)) {
+                    Log.w(TAG, "Gemini blocked content for safety.")
+                    return null
+                }
+                val content = first.optJSONObject("content") ?: return null
+                val parts = content.optJSONArray("parts") ?: return null
+                val sb = StringBuilder()
+                for (i in 0 until parts.length()) {
+                    val part = parts.getJSONObject(i)
+                    val t = part.optString("text")
+                    if (t.isNotBlank()) sb.append(t)
+                }
+                var text = sb.toString().trim()
+                text = text.removePrefix("Translation:").removePrefix("translation:").trim()
+                if ((text.startsWith('"') && text.endsWith('"') && text.length > 1) ||
+                    (text.startsWith('“') && text.endsWith('”') && text.length > 1)) {
+                    text = text.substring(1, text.length - 1).trim()
+                }
+                if (text.isBlank()) return null
+                if (attempt > 1) Log.d(TAG, "Gemini succeeded after $attempt attempts")
+                return text
+            } catch (e: Exception) {
+                lastError = e.message
+                Log.e(TAG, "Gemini attempt $attempt error: ${e.message}")
+                // Backoff before next attempt
+                kotlinx.coroutines.runBlocking { kotlinx.coroutines.delay(250L * attempt) }
             }
-            val escapedPrompt = prompt.replace("\"", "\\\"")
-            val payload = """{"contents":[{"parts":[{"text":"$escapedPrompt"}]}]}"""
-            conn.outputStream.use { it.write(payload.toByteArray()) }
-            val code = conn.responseCode
-            val response = try { conn.inputStream.bufferedReader().readText() } catch (e: Exception) { conn.errorStream?.bufferedReader()?.readText() ?: "" }
-            if (code != 200) {
-                Log.w(TAG, "Gemini translation HTTP $code: ${response.take(120)}")
-                return null
-            }
-            // Minimal JSON extraction
-            val root = org.json.JSONObject(response)
-            val candidates = root.optJSONArray("candidates") ?: return null
-            if (candidates.length() == 0) return null
-            val content = candidates.getJSONObject(0).optJSONObject("content") ?: return null
-            val parts = content.optJSONArray("parts") ?: return null
-            if (parts.length() == 0) return null
-            var text = parts.getJSONObject(0).optString("text")
-            text = text.trim()
-            // Remove leading labels
-            text = text.removePrefix("Translation:").removePrefix("translation:").trim()
-            // Strip enclosing quotes if present
-            if ((text.startsWith('"') && text.endsWith('"') && text.length > 1) ||
-                (text.startsWith('“') && text.endsWith('”') && text.length > 1)) {
-                text = text.substring(1, text.length - 1).trim()
-            }
-            text.ifBlank { null }
-        } catch (e: Exception) {
-            Log.e(TAG, "Gemini chunk translation error: ${e.message}")
-            null
         }
+        Log.e(TAG, "Gemini translation failed after $maxAttempts attempts: $lastError")
+        return null
     }
 
     // Simple heuristic language detection for a few common languages

@@ -352,7 +352,24 @@ private fun TranslationBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            var manualLang by remember { mutableStateOf("") }
+            // Predefined language list (code to display name)
+            val languages = listOf(
+                "en" to "English",
+                "es" to "Español",
+                "fr" to "Français",
+                "de" to "Deutsch",
+                "it" to "Italiano",
+                "pt" to "Português",
+                "ru" to "Русский",
+                "zh" to "中文",
+                "ja" to "日本語",
+                "ko" to "한국어",
+                "ar" to "العربية",
+                "hi" to "हिन्दी"
+            )
+            var expanded by remember { mutableStateOf(false) }
+            var selectedLang by remember { mutableStateOf<String?>(null) }
+            val vm = androidx.lifecycle.viewmodel.compose.viewModel<PdfToVoiceViewModel>()
             when {
                 state.isTranslating -> {
                     CircularProgressIndicator(
@@ -367,17 +384,46 @@ private fun TranslationBar(
                     TextButton(onClick = onCancel) { Text("Cancel") }
                 }
                 state.translatedText != null -> {
-                    AssistChip(
-                        onClick = onToggleSource,
-                        label = { Text(if (state.activeTextSource == TextSource.ORIGINAL) "Show Translated" else "Show Original") },
-                        leadingIcon = { Icon(Icons.Default.Translate, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                    )
-                    if (state.translationLanguage != null) {
-                        Text(
-                            text = "Lang: ${state.translationLanguage}${state.translationProvider?.let { ", ${it}" } ?: ""}${if (state.translationPartial) " (partial)" else ""}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.secondary
-                        )
+                    Column(Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            AssistChip(
+                                onClick = onToggleSource,
+                                label = { Text(if (state.activeTextSource == TextSource.ORIGINAL) "Show Translated" else "Show Original") },
+                                leadingIcon = { Icon(Icons.Default.Translate, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            // Dropdown trigger to translate to another language instantly
+                            Box {
+                                FilledTonalButton(
+                                    onClick = { expanded = true },
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Icon(Icons.Default.Translate, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(selectedLang?.let { l -> languages.find { it.first == l }?.second ?: l } ?: "Change")
+                                }
+                                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                                    languages.forEach { (code, label) ->
+                                        DropdownMenuItem(
+                                            text = { Text(label) },
+                                            onClick = {
+                                                expanded = false
+                                                selectedLang = code
+                                                vm.requestTranslation(code)
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        if (state.translationLanguage != null) {
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = "Lang: ${state.translationLanguage}${state.translationProvider?.let { ", ${it}" } ?: ""}${if (state.translationPartial) " (partial)" else ""}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
                     }
                 }
                 else -> {
@@ -387,26 +433,31 @@ private fun TranslationBar(
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(Modifier.height(4.dp))
-                        OutlinedTextField(
-                            value = manualLang,
-                            onValueChange = { manualLang = it.take(8) },
-                            singleLine = true,
-                            placeholder = { Text("Target lang code (e.g. es, fr)") },
-                            modifier = Modifier.width(190.dp),
-                            textStyle = MaterialTheme.typography.labelSmall,
-                            shape = RoundedCornerShape(12.dp)
-                        )
+                        Spacer(Modifier.height(6.dp))
+                        Box {
+                            FilledTonalButton(
+                                onClick = { expanded = true },
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Icon(Icons.Default.Translate, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(selectedLang?.let { l -> languages.find { it.first == l }?.second ?: l } ?: "Select Language")
+                            }
+                            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                                languages.forEach { (code, label) ->
+                                    DropdownMenuItem(
+                                        text = { Text(label) },
+                                        onClick = {
+                                            expanded = false
+                                            selectedLang = code
+                                            vm.requestTranslation(code)
+                                        }
+                                    )
+                                }
+                            }
+                        }
                     }
                     Spacer(Modifier.width(4.dp))
-                    val vm = androidx.lifecycle.viewmodel.compose.viewModel<PdfToVoiceViewModel>()
-                    Button(
-                        enabled = manualLang.trim().length in 2..8,
-                        onClick = { vm.requestTranslation(manualLang.trim()) },
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Text("Translate")
-                    }
                 }
             }
             if (state.translationError != null) {
